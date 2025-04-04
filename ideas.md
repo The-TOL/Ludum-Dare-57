@@ -1,10 +1,12 @@
-# Prepared ideas for the themes we think will win:
+# Prepared ideas for the possible themes:
 
 ### Plant the seed:
 
 ### Decay:
 
 ### Depths:
+
+### Recharge:
 
 ### Doors:
 You wake up in a mysterious room that contains a gym.. and a door. The door is reaaaally heavy though, so you have to hit the gym.
