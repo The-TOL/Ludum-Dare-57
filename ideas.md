@@ -5,6 +5,9 @@
 ### Decay:
 
 ### Depths:
+You play as a miner exploring an abandoned cave. The deeper you go, the less oxygen there is, causing you to hallucinate.
+Use tools to open blocked mining paths, and rely on a poorly drawn map to track your location as darkness creeps in.
+Because of the low oxygen, torches flicker and burn out faster, making lights unreliable </3
 
 ### Recharge:
 
@@ -15,13 +18,13 @@ Once you're strong enough to open the door, you get another, heavier door (and g
 
 ### Send signals:
 
-### Keep it togheter:
+### Keep it together:
 You play as a blob who has the ability to split himself into smaller pieces of himself which he can control.
 These parts are used as platforms, projectiles and lives. The more damage you take, the less pieces you have to work with.
-Smaller pieces can only survive for a few seconds, so keep it togheter (wink wink nudge nudge)
+Smaller pieces can only survive for a few seconds, so keep it together (wink wink nudge nudge)
 
 
-![KeepItTogheter](https://github.com/user-attachments/assets/2207bc76-c083-4560-b4d9-93eb80d00f00)
+![KeepItTogether](https://github.com/user-attachments/assets/2207bc76-c083-4560-b4d9-93eb80d00f00)
 
 
 ### Wild magic:
