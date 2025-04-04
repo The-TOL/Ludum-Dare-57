@@ -22,13 +22,11 @@ Smaller pieces can only survive for a few seconds, so keep it togheter (wink win
 ![KeepItTogheter](https://github.com/user-attachments/assets/2207bc76-c083-4560-b4d9-93eb80d00f00)
 
 
-
-
-
 ### Wild magic:
 
 ### Side effects:
 
 ### Bottomless:
+Something inspired by [The Stanley Parable hole ending](https://www.youtube.com/watch?v=iF-a52LowrI), I'll get back to this when I know what.
 
 ### Layers:
