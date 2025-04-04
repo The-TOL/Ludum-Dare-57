@@ -25,6 +25,8 @@ Smaller pieces can only survive for a few seconds, so keep it togheter (wink win
 
 
 ### Wild magic:
+You're a wizard, everything you touch explodes. Think of midas touch but.. more intense.
+It's a rouglike were you navigate a procedurally generated maze full of obstacles (This is dangerous cause you're always having your arms out straight forward like a zombie for some reason) and the second you touch ANYTHING, you explode. 
 
 ### Side effects:
 
