@@ -7,6 +7,9 @@
 ### Depths:
 
 ### Doors:
+You wake up in a mysterious room that contains a gym.. and a door. The door is reaaaally heavy though, so you have to hit the gym.
+The gym consists of WarioWare type minigames, and all the exercises are just things like "5 sets of pulling a doorknob" or "pulling the door open till failure"
+Once you're strong enough to open the door, you get another, heavier door (and gym). The cycle repeats from there.
 
 ### Send signals:
 
