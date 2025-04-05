@@ -65,7 +65,7 @@ function Game:mousepressed(x, y, button)
     end
 end
 
--- Unique player inputs (y kills player, u stops falling, space is jump)
+-- Unique inputs (y kills player, u stops falling, space is jump, i toggles oxgen deplete/refill)
 function Game:keypressed(key)
     if key == "y" then
         self.player.isDead = true
@@ -77,6 +77,10 @@ function Game:keypressed(key)
     if key == "space" and not self.player.isJumping and not self.player.isDead then
         self.player.velocityY = -300
         self.player.isJumping = true
+    end
+    if key == "i" then
+        self.player.oxygen:toggleRefill()
+        self.canary.oxygen:toggleRefill()
     end
 end
 

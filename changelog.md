@@ -15,3 +15,8 @@
 - Added placeholder sprite for the canary with anchoring to the player 
 - Added oxygen meters for the player and canary (with death when oxygen is at 0)
 - Split player and canary into seperate files from game.lua
+
+# Day 2
+4/6/2025 12:30 AM CET
+- Added alert sound when canary is low on oxygen
+- Added proper oxygen refilling (test by pressing i to toggle oxygen)

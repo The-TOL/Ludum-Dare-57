@@ -10,7 +10,10 @@ function Canary:new()
         anchorX = 65,
         anchorY = 68,
         oxygen = Oxygen:new(80, 10), 
-        isDead = false
+        isDead = false,
+        clickSound = love.audio.newSource("assets/audio/click.mp3", "static"),
+        alertThresholds = {0.2, 0.1},
+        lastThresholdIndex = nil
     }
     setmetatable(obj, self)
     self.__index = self
@@ -45,6 +48,19 @@ end
 function Canary:update(dt)
     if not self.isDead then
         self.oxygen:update(dt)
+        
+        -- Check oxygen thresholds and play sound when at 20% or lower
+        local oxygenPercent = self.oxygen:getPercentage()
+        for i, threshold in ipairs(self.alertThresholds) do
+            if oxygenPercent <= threshold and self.lastThresholdIndex ~= i then
+                self.clickSound:play()
+                self.lastThresholdIndex = i
+            end
+        end
+        if oxygenPercent > self.alertThresholds[1] then
+            self.lastThresholdIndex = nil
+        end
+
         if self.oxygen.isDepleted then
             self.isDead = true
         end
