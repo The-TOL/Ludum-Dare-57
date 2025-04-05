@@ -5,6 +5,13 @@
 - Added simple game scene (2D character controller with gravity)
 - Added object/scene template 
 
-4/5/2025 - 12:03 AM CET
+4/5/2025 - 12:03 PM CET
 - Set up exporting/distributing
 - Added a respawn mechanic
+
+4/5/2025 - 11:52 PM CET
+- Added placeholder sprite for the player with direction tracking
+- Added placeholder parralax background (shout out to [lil-cthulhu](https://lil-cthulhu.itch.io/pixel-art-cave-background))
+- Added placeholder sprite for the canary with anchoring to the player 
+- Added oxygen meters for the player and canary (with death when oxygen is at 0)
+- Split player and canary into seperate files from game.lua
