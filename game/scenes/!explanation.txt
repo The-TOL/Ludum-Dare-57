@@ -1,0 +1,2 @@
+We will be splitting different screens into scenes, much like the system Unity uses
+Insert lua scene files here

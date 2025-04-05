@@ -1,53 +1,58 @@
--- Sizes for the player and window
-local player = { x = 400, y = 300, speed = 200, size = 50 }
+-- Dependencies
+local Game = require("scenes/game")
+local Menu = require("scenes/menu")
+
+-- Game state, will be used to switch between scenes
+local state = "menu"
+local menuScene = nil
+local gameScene = nil
+
+-- Define window size
 local windowWidth, windowHeight = love.window.getDesktopDimensions()
 
--- Example on how project can be split into multiple files
-local Button = require("button")
-local button = Button:new(350, 500, 100, 50, "Click Me")
--- Define sound asset
-local clickSound  = love.audio.newSource("assets/sounds/click.mp3", "static")
-
--- Make the window fixed size
 function love.load()
-    love.window.setMode(windowWidth, windowHeight, { fullscreen = true, resizable = false }) 
-    love.window.setTitle("Love 2D test") 
+    -- Load window
+    love.window.setMode(windowWidth, windowHeight, { resizable = false })
+    love.window.setTitle("LD57")
+
+    -- Make and define variables for the menu scene
+    menuScene = Menu:new(windowWidth, windowHeight, 
+        function()
+            state = "game"
+            gameScene = Game:new(windowWidth, windowHeight)
+        end, 
+        function()
+            love.event.quit()
+        end
+    )
 end
 
--- Moving with WASD
-function love.update(dt)
-    if love.keyboard.isDown("w") then
-        player.y = player.y - player.speed * dt
-    end
-    if love.keyboard.isDown("a") then
-        player.x = player.x - player.speed * dt
-    end
-    if love.keyboard.isDown("s") then
-        player.y = player.y + player.speed * dt
-    end
-    if love.keyboard.isDown("d") then
-        player.x = player.x + player.speed * dt
-    end
-end
-
--- Listener to check for left mouse clicks
+-- Click listener for the menu scene
 function love.mousepressed(x, y, buttonType)
-    if buttonType == 1 then 
-        button:handleClick(x, y)
+    if state == "menu" then
+        menuScene:mousepressed(x, y, buttonType)
     end
 end
 
--- Assign button click behavior
-button.onClick = function()
-    local soundInstance = love.audio.newSource("assets/sounds/click.mp3", "static")
-    love.audio.play(soundInstance)
+-- Update functions for the game scene
+function love.update(dt)
+    if state == "game" then
+        gameScene:update(dt)
+    end
 end
 
--- Draw our components to the window
+-- Key press functions for the game scene
+function love.keypressed(key)
+    if state == "game" then
+        gameScene:keypressed(key)
+    end
+end
+
+-- Draw the menu and game scene to the window
 function love.draw()
-    love.graphics.print("Hello, World!", windowWidth / 2 - 50, windowHeight / 2 - 50)
-    love.graphics.rectangle("fill", player.x, player.y, player.size, player.size)
-    button:draw()
+    if state == "menu" then
+        menuScene:draw()
+    elseif state == "game" then
+        gameScene:draw()
+    end
 end
-
--- Run with love {path} (or love . if you're already in the directory)

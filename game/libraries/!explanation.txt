@@ -1,0 +1,8 @@
+Insert used internal and external libraries here
+
+Internal:
+Files we made ourselves that are often referenced, but not scenes (like button.lua)
+
+External:
+Files or collections from others, a list of libraries can be found below
+https://github.com/love2d-community/awesome-love2d?tab=readme-ov-file#3d
