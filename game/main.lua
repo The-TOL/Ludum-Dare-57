@@ -19,7 +19,9 @@ function love.load()
     menuScene = Menu:new(windowWidth, windowHeight, 
         function()
             state = "game"
-            gameScene = Game:new(windowWidth, windowHeight)
+            gameScene = Game:new(windowWidth, windowHeight, function()
+                state = "menu"
+            end)
         end, 
         function()
             love.event.quit()
@@ -31,6 +33,8 @@ end
 function love.mousepressed(x, y, buttonType)
     if state == "menu" then
         menuScene:mousepressed(x, y, buttonType)
+    elseif state == "game" then
+        gameScene:mousepressed(x, y, buttonType)
     end
 end
 
