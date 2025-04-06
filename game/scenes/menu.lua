@@ -1,5 +1,5 @@
 -- Dependecies
-local Button = require("libraries/button")
+local Button = require("scripts/button")
 
 local Menu = {}
 
