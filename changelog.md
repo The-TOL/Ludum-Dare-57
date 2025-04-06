@@ -42,3 +42,7 @@
 - Added key j, g and f3 for super speed, generating seeds and viewing debug map
 - Spruced up the main menu
 - Set up the build file with an icon and correct game info
+
+4/6/2025 23:05 PM CET
+- Added shacks as a tile
+- Added oxygen refilling when in shack tile (only registers in a very small radius currently)

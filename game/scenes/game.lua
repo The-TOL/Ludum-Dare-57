@@ -63,6 +63,8 @@ end
 function Game:update(dt)
     if not self.player.isDead then
         self.player:update(dt, self.world, self.windowWidth)
+        -- Sync canary oxygen refill with player's state
+        self.canary.oxygen.isRefilling = self.player.oxygen.isRefilling
         self.canary:update(dt)
         self.camera:update(dt, self.player, self.world.width, self.world.height)
     end

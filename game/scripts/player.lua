@@ -56,8 +56,21 @@ function Player:checkCollision(world)
 end
 
 function Player:update(dt, world, windowWidth)
-        -- Kill player if oxygen depleted
     if not self.isDead then
+        -- Check if player is in shack to refill oxygen
+        local playerTileX = math.floor((self.x + self.collisionBox.offsetX + self.collisionBox.width/2) / world.tileSize) + 1
+        local playerTileY = math.floor((self.y + self.collisionBox.offsetY + self.collisionBox.height) / world.tileSize) + 1
+        
+        if playerTileY >= 1 and playerTileY <= world.mapHeight and 
+           playerTileX >= 1 and playerTileX <= world.mapWidth then
+            local tileType = world.mapData[playerTileY][playerTileX]
+
+            -- Set refill state based on being in shack
+            self.oxygen.isRefilling = (tileType == world.SHACK)
+        else
+            self.oxygen.isRefilling = false
+        end
+        
         self.oxygen:update(dt)
         if self.oxygen.isDepleted then
             self.isDead = true

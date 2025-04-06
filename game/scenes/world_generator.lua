@@ -1,7 +1,8 @@
---TODO add per level rendering
 local mapGenerator = require("scripts.map_generator")
 
-local worldGenerator = {}
+local worldGenerator = {
+    shackSprite = love.graphics.newImage("assets/visual/shack.png")
+}
 
 function worldGenerator.generateWorld(tileSize)
     tileSize = tileSize or 32
@@ -22,6 +23,7 @@ function worldGenerator.generateWorld(tileSize)
         WALL = mapGenerator.WALL,
         TUNNEL = mapGenerator.TUNNEL,
         BLOCKAGE = mapGenerator.BLOCKAGE,
+        SHACK = mapGenerator.SHACK,
         playerStartX = playerStartWorldX,
         playerStartY = playerStartWorldY
     }
@@ -76,6 +78,7 @@ end
 function worldGenerator.drawMap(world, cameraY, cameraX)
     -- Original wall drawing (keep your existing colors)
     local wallColor = {0.5, 0.5, 0.5, 1}
+    
     -- Calculate visible area
     local startY = math.floor(cameraY / world.tileSize)
     local endY = math.ceil((cameraY + love.graphics.getHeight()) / world.tileSize)
@@ -100,6 +103,16 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
                     (y-1) * world.tileSize - cameraY, 
                     world.tileSize, 
                     world.tileSize
+                )
+            elseif tileType == world.SHACK then
+                love.graphics.setColor(1, 1, 1, 1)
+                love.graphics.draw(
+                    worldGenerator.shackSprite,
+                    (x-1) * world.tileSize,
+                    (y-1) * world.tileSize - cameraY - (world.tileSize * 10), 
+                    0,
+                    world.tileSize * 11 / worldGenerator.shackSprite:getWidth(),
+                    world.tileSize * 11 / worldGenerator.shackSprite:getHeight()
                 )
             end
         end
