@@ -6,9 +6,9 @@ function Canary:new()
     -- Define variables for the canary
     local obj = {
         sprite = love.graphics.newImage("assets/visual/canary.png"),
-        size = 40,
-        anchorX = 99,
-        anchorY = 96,
+        size = 30,
+        anchorX = 85,
+        anchorY = 94,
         oxygen = Oxygen:new(80, 10), 
         isDead = false,
         clickSound = love.audio.newSource("assets/audio/chirp.mp3", "static"),
@@ -19,7 +19,7 @@ function Canary:new()
         springConstant = 6,         
         damping = 0.995,            
         maxAngle = 1.2,             
-        swingForce = 3             
+        swingForce = 1.4          
     }
     setmetatable(obj, self)
     self.__index = self

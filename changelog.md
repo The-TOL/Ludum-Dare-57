@@ -24,3 +24,6 @@
 4/6/2025 9:12 AM CET
 - Added actual chirp sound for the canary
 - Added physics swining for the canary cage
+
+4/6/2025 11:02 AM CET
+- Added a walk cycle for the player (using cycle from [nathan van der stoep](https://nathanvanderstoep.itch.io/walk-cycle-template) as basis)
