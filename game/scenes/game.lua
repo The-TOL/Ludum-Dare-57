@@ -1,16 +1,20 @@
 local Button = require("libraries/button")
 local DeathScreen = require("scenes/death_screen")
+local WorldGenerator = require("scenes/map/world_generator")
 
 local Game = {}
 
 function Game:new(windowWidth, windowHeight, onMainMenu)
+    -- Generate the world
+    local world = WorldGenerator.generateWorld()
+    
     -- Define the player and background
     local obj = {
         player = { 
-            x = 400, 
-            y = 100, 
-            spawnX = 400,
-            spawnY = 100,
+            x = world.playerStartX * world.tileSize,
+            y = world.playerStartY * world.tileSize,
+            spawnX = world.playerStartX * world.tileSize,
+            spawnY = world.playerStartY * world.tileSize,
             speed = 200, 
             size = 50, 
             velocityY = 0, 
@@ -22,6 +26,7 @@ function Game:new(windowWidth, windowHeight, onMainMenu)
         caveBackground = love.graphics.newImage("assets/visual/cave_background.png"),
         windowWidth = windowWidth,
         windowHeight = windowHeight,
+        world = world
     }
 
     -- Define deathscreen
