@@ -20,3 +20,7 @@
 4/6/2025 12:30 AM CET
 - Added alert sound when canary is low on oxygen
 - Added proper oxygen refilling (test by pressing i to toggle oxygen)
+
+4/6/2025 9:12 AM CET
+- Added actual chirp sound for the canary
+- Added physics swining for the canary cage
