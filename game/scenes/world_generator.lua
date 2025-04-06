@@ -106,4 +106,8 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
     end
 end
 
+function worldGenerator.drawDebug(world, cameraY, cameraX)
+    mapGenerator.drawDebug(world.mapData, world.tileSize, cameraY, cameraX)
+end
+
 return worldGenerator

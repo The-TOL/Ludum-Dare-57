@@ -34,6 +34,11 @@
 4/6/2025 14:52 PM CET
 -Added a World generator to display and generate the world from the map
 
-4/6/2025 19:12 pm CET
+4/6/2025 19:12 PM CET
 - Added Player and world collition
 - Added camera following player
+
+4/6/2025 21:55 PM CET
+- Added key j, g and f3 for super speed, generating seeds and viewing debug map
+- Spruced up the main menu
+- Set up the build file with an icon and correct game info

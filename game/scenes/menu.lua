@@ -6,6 +6,8 @@ local Menu = {}
 function Menu:new(windowWidth, windowHeight, onStart, onQuit)
     -- Define a start and quit button with onClick functions
     local obj = {
+        background = love.graphics.newImage("assets/visual/menu_background.png"),
+        title = love.graphics.newImage("assets/visual/menu_title.png"),
         startButton = Button:new((windowWidth - 200) / 2, (windowHeight / 2) - 60, 200, 50, "Start"),
         quitButton = Button:new((windowWidth - 200) / 2, (windowHeight / 2) + 20, 200, 50, "Quit"),
         onStart = onStart,
@@ -23,7 +25,25 @@ end
 
 -- Draw menu with buttons
 function Menu:draw()
-    love.graphics.print("I am the game... ahhh....", (love.graphics.getWidth() / 2) - 50, (love.graphics.getHeight() / 2) - 120)
+
+    -- Draw background
+    local scaleX = love.graphics.getWidth() / self.background:getWidth()
+    local scaleY = love.graphics.getHeight() / self.background:getHeight()
+    love.graphics.draw(self.background, 0, 0, 0, scaleX, scaleY)
+    love.graphics.setColor(1, 1, 1, 1)
+
+    -- Draw title
+    local titleWidth = self.title:getWidth()
+    local titleHeight = self.title:getHeight()
+    local titleScale = 1.2 
+    love.graphics.draw(
+        self.title, 
+        (love.graphics.getWidth() - titleWidth * titleScale) / 1.7,
+        love.graphics.getHeight() * 0.24, 
+        0,
+        titleScale,
+        titleScale
+    )
     self.startButton:draw()
     self.quitButton:draw()
 end

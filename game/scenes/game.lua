@@ -35,7 +35,8 @@ function Game:new(windowWidth, windowHeight, onMainMenu)
         },
         windowWidth = windowWidth,
         windowHeight = windowHeight,
-        world = world
+        world = world,
+        showFullMap = false
     }
 
     obj.deathScreen = DeathScreen:new(
@@ -79,10 +80,6 @@ function Game:keypressed(key)
     if key == "y" then
         self.player.isDead = true
     end
-    if key == "u" then
-        self.player.gravity = 0
-        self.player.velocityY = 0
-    end
     if key == "space" and not self.player.isJumping and not self.player.isDead then
         self.player.velocityY = -300
         self.player.isJumping = true
@@ -91,14 +88,65 @@ function Game:keypressed(key)
         self.player.oxygen:toggleRefill()
         self.canary.oxygen:toggleRefill()
     end
+    if key == "j" then
+        self.player.speed = 2000
+    end
+    if key == "f3" then  
+        self.showFullMap = not self.showFullMap
+    end
+    if key == "g" then
+        self.world = worldGenerator.generateWorld(32)
+        self.player.x = self.world.playerStartX
+        self.player.y = self.world.playerStartY
+    end
 end
 
 function Game:draw()
+    if self.showFullMap then
+        -- Draw debug map
+        love.graphics.setColor(1, 1, 1, 1)
+        
+        local scaleX = self.windowWidth / (self.world.width)
+        local scaleY = self.windowHeight / (self.world.height)
+        local scale = math.min(scaleX, scaleY)
+        
+        local offsetX = (self.windowWidth - (self.world.width * scale)) / 2
+        local offsetY = (self.windowHeight - (self.world.height * scale)) / 2
+
+        love.graphics.push()
+        love.graphics.translate(offsetX, offsetY)
+        love.graphics.scale(scale, scale)
+        
+        -- Draw map with colors for tiles
+        for y = 1, self.world.mapHeight do
+            for x = 1, self.world.mapWidth do
+                local tileX = (x-1) * self.world.tileSize
+                local tileY = (y-1) * self.world.tileSize
+                
+                if self.world.mapData[y][x] == self.world.WALL then
+                    love.graphics.setColor(0.5, 0.5, 0.5, 1)
+                elseif self.world.mapData[y][x] == self.world.TUNNEL then
+                    love.graphics.setColor(0, 0.7, 0, 1)
+                elseif self.world.mapData[y][x] == self.world.BLOCKAGE then
+                    love.graphics.setColor(1, 0, 0, 1)
+                end
+                
+                love.graphics.rectangle("fill", tileX, tileY, 
+                    self.world.tileSize, self.world.tileSize)
+            end
+        end
+        
+        -- Draw player position indicator
+        love.graphics.setColor(1, 1, 0, 1)
+        love.graphics.circle("fill", self.player.x, self.player.y, 10)
+        
+        love.graphics.pop()
+    else
         local cameraX, cameraY = self.camera:getPosition()
         self.camera:applyTransform()
         
-    -- Background parralax logic
-    love.graphics.setColor(1, 1, 1, 1)
+        -- Background parralax logic
+        love.graphics.setColor(1, 1, 1, 1)
         for _, bg in ipairs(self.backgrounds) do
             local scaleX = self.windowWidth / bg.sprite:getWidth()
             local scaleY = self.windowHeight / bg.sprite:getHeight()
@@ -133,5 +181,6 @@ function Game:draw()
             self.deathScreen:draw()
         end
     end
+end
 
 return Game
