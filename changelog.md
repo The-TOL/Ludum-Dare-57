@@ -16,6 +16,9 @@
 - Added oxygen meters for the player and canary (with death when oxygen is at 0)
 - Split player and canary into seperate files from game.lua
 
+4/5/2025 - 21:54 PM CET
+- Added a map generator to generate and calculate the map
+
 # Day 2
 4/6/2025 12:30 AM CET
 - Added alert sound when canary is low on oxygen
@@ -27,3 +30,10 @@
 
 4/6/2025 11:02 AM CET
 - Added a walk cycle for the player (using cycle from [nathan van der stoep](https://nathanvanderstoep.itch.io/walk-cycle-template) as basis)
+
+4/6/2025 14:52 PM CET
+-Added a World generator to display and generate the world from the map
+
+4/6/2025 19:12 pm CET
+- Added Player and world collition
+- Added camera following player

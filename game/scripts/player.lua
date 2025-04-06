@@ -1,4 +1,5 @@
 local Oxygen = require("scripts/oxygen")
+local worldGenerator = require("scenes.world_generator")
 
 local Player = {}
 
@@ -14,14 +15,20 @@ function Player:new(x, y)
         isMoving = false,
         x = x,
         y = y,
-        speed = 200,
+        speed = 350,
         size = 130,
         velocityY = 0,
         gravity = 500,
         isJumping = false,
         isDead = false,
         facingLeft = false,
-        oxygen = Oxygen:new(100, 10) 
+        oxygen = Oxygen:new(100, 10),
+        collisionBox = {
+            offsetX = 35,
+            offsetY = 20,
+            width = 60,
+            height = 100
+        }
     }
     
     obj.frameWidth = obj.spriteSheet:getWidth() / obj.numFrames
@@ -31,23 +38,34 @@ function Player:new(x, y)
     return obj
 end
 
-function Player:update(dt, windowWidth)
-    -- Kill player if oxygen depleted
+function Player:getCollisionBox()
+    return {
+        x = self.x + self.collisionBox.offsetX,
+        y = self.y + self.collisionBox.offsetY,
+        width = self.collisionBox.width,
+        height = self.collisionBox.height
+    }
+end
+
+function Player:checkCollision(world)
+    -- Get current collision box
+    local box = self:getCollisionBox()
+    
+    -- Check collision with world
+    return worldGenerator.checkCollision(world, box.x, box.y, box.width, box.height)
+end
+
+function Player:update(dt, world, windowWidth)
+        -- Kill player if oxygen depleted
     if not self.isDead then
         self.oxygen:update(dt)
         if self.oxygen.isDepleted then
             self.isDead = true
         end
 
-        -- Apply gravity
-        self.velocityY = self.velocityY + self.gravity * dt
-        self.y = self.y + self.velocityY * dt
+        -- Store previous positions
+        local prevX, prevY = self.x, self.y
 
-        -- Window borders
-        if self.x < 0 then self.x = 0 end
-        if self.x + self.size > windowWidth then self.x = windowWidth - self.size end
-
-        -- Track if player is moving for animation
         self.isMoving = false
 
         -- Left/Right movement with facing direction
@@ -60,6 +78,22 @@ function Player:update(dt, windowWidth)
             self.x = self.x + self.speed * dt
             self.facingLeft = false
             self.isMoving = true
+        end
+
+        -- Check horzontal collision
+        if self:checkCollision(world) then
+            self.x = prevX
+        end
+
+        -- Vertical gravity
+        self.velocityY = self.velocityY + self.gravity * dt
+        self.y = self.y + self.velocityY * dt
+
+        -- Check vertical collision
+        if self:checkCollision(world) then
+            self.y = prevY -- Revert Y if collision
+            self.velocityY = 0
+            self.isJumping = false
         end
 
         -- Update animation
@@ -79,7 +113,7 @@ end
 function Player:draw(cameraY)
     local scaleX = self.size / self.frameWidth
     if self.facingLeft then scaleX = -scaleX end
-    
+
     -- Calculate the quad for the current frame
     local quad = love.graphics.newQuad(
         (self.currentFrame - 1) * self.frameWidth,

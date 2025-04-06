@@ -2,14 +2,19 @@ local Button = require("scripts/button")
 local DeathScreen = require("scenes/death_screen")
 local Player = require("scripts/player")
 local Canary = require("scripts/canary")
+local Camera = require("scripts/camera")
+local worldGenerator = require("scenes.world_generator")
 
 local Game = {}
 
 function Game:new(windowWidth, windowHeight, onMainMenu)
     --- Define the player, canary, background and death screen
+    local world = worldGenerator.generateWorld(32)
+    
     local obj = {
-        player = Player:new(400, 100),
+        player = Player:new(world.playerStartX, world.playerStartY),
         canary = Canary:new(),
+        camera = Camera:new(windowWidth, windowHeight),
         backgrounds = {
             {
                 sprite = love.graphics.newImage("assets/visual/grey_L1.png"),
@@ -28,7 +33,6 @@ function Game:new(windowWidth, windowHeight, onMainMenu)
                 scrollSpeed = 0.04
             }
         },
-        cameraY = 100,
         windowWidth = windowWidth,
         windowHeight = windowHeight,
         world = world
@@ -38,12 +42,16 @@ function Game:new(windowWidth, windowHeight, onMainMenu)
         windowWidth, 
         windowHeight,
         function() 
-            -- Recreate player and canary instead of just respawning (UPDATE THIS TO RESTART THE ENTIRE SCENE LATER)
-            obj.player = Player:new(400, 100)
+            obj.world = worldGenerator.generateWorld(32)
+            obj.player = Player:new(obj.world.playerStartX, obj.world.playerStartY)
             obj.canary = Canary:new()
+            obj.camera = Camera:new(windowWidth, windowHeight)
         end,
         onMainMenu
     )
+
+    -- Set initial camera position to focus on player
+    obj.camera:update(0, obj.player, obj.world.width, obj.world.height)
 
     setmetatable(obj, self)
     self.__index = self
@@ -53,9 +61,9 @@ end
 -- Game update functions, see game.lua/player.lua
 function Game:update(dt)
     if not self.player.isDead then
-        self.player:update(dt, self.windowWidth)
+        self.player:update(dt, self.world, self.windowWidth)
         self.canary:update(dt)
-        self.cameraY = self.player.y - self.windowHeight * 0.4
+        self.camera:update(dt, self.player, self.world.width, self.world.height)
     end
 end
 
@@ -86,34 +94,44 @@ function Game:keypressed(key)
 end
 
 function Game:draw()
+        local cameraX, cameraY = self.camera:getPosition()
+        self.camera:applyTransform()
+        
     -- Background parralax logic
     love.graphics.setColor(1, 1, 1, 1)
-    for _, bg in ipairs(self.backgrounds) do
-        local scaleX = self.windowWidth / bg.sprite:getWidth()
-        local scaleY = self.windowHeight / bg.sprite:getHeight()
-        local yOffset = (self.player.y * bg.scrollSpeed) % self.windowHeight
+        for _, bg in ipairs(self.backgrounds) do
+            local scaleX = self.windowWidth / bg.sprite:getWidth()
+            local scaleY = self.windowHeight / bg.sprite:getHeight()
+            local yOffset = (self.player.y * bg.scrollSpeed) % self.windowHeight
+            local xOffset = (cameraX * bg.scrollSpeed) % self.windowWidth
+            
+            -- Draw background
+            love.graphics.draw(bg.sprite, cameraX + xOffset, -yOffset, 0, scaleX, scaleY)
+            love.graphics.draw(bg.sprite, cameraX + xOffset + self.windowWidth, -yOffset, 0, scaleX, scaleY)
+        end
         
-        love.graphics.draw(bg.sprite, 0, -yOffset, 0, scaleX, scaleY)
-        love.graphics.draw(bg.sprite, 0, self.windowHeight - yOffset, 0, scaleX, scaleY)
+        -- Draw the walls
+        worldGenerator.drawMap(self.world, cameraY, cameraX)
+        
+        -- Draw player and canary
+        self.player:draw(cameraY)
+        self.canary:draw(self.player, cameraY)
+        
+        self.camera:removeTransform()
+        
+        -- Draw oxygen meters
+        love.graphics.setColor(1, 1, 1, 1)
+        -- Player oxygen meter
+        love.graphics.rectangle("line", 10, 10, 200, 20)
+        love.graphics.rectangle("fill", 10, 10, 200 * self.player.oxygen:getPercentage(), 20)
+        -- Canary oxygen meter
+        love.graphics.rectangle("line", 10, 40, 100, 10)
+        love.graphics.rectangle("fill", 10, 40, 100 * self.canary.oxygen:getPercentage(), 10)
+        
+        -- Draw death screen
+        if self.player.isDead then
+            self.deathScreen:draw()
+        end
     end
-    
-    -- Draw player and canary
-    self.player:draw(self.cameraY)
-    self.canary:draw(self.player, self.cameraY)
-    
-    -- Draw oxygen meters
-    love.graphics.setColor(1, 1, 1, 1)
-    -- Player oxygen meter
-    love.graphics.rectangle("line", 10, 10, 200, 20)
-    love.graphics.rectangle("fill", 10, 10, 200 * self.player.oxygen:getPercentage(), 20)
-    -- Canary oxygen meter
-    love.graphics.rectangle("line", 10, 40, 100, 10)
-    love.graphics.rectangle("fill", 10, 40, 100 * self.canary.oxygen:getPercentage(), 10)
-    
-    -- Draw death screen
-    if self.player.isDead then
-        self.deathScreen:draw()
-    end
-end
 
 return Game

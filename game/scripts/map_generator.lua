@@ -1,3 +1,5 @@
+--TODO add platforms, blockages and level transitions
+
 local MapGenerator = {}
 
 -- Constants
@@ -12,30 +14,31 @@ MapGenerator.BLOCKAGE = 2
 MapGenerator.config = {
     mainMine = { xPosition = 0.4, width = 0.0010 },
     levels = {
-        count = {min = 3, max = 5},
-        heightPercent = {min = 0.05, max = 0.15},
-        length = {min = 0.15, max = 0.35}
+        count = {min = 4, max = 7},
+        heightPercent = {min = 0.05, max = 0.2},
+        length = {min = 0.10, max = 0.25}
     },
     branches = {
-        chance = 0.5,
-        minSpacingPercent = 0.02, 
-        startDepthPercent = 0.4,
-        noSpawnZonePercent = 0.05,
-        connectLevels = {min = 1, max = 3}
+        chance = 0.7,
+        minSpacingPercent = 0.015,
+        startDepthPercent = 0.2,
+        noSpawnZonePercent = 0.03,
+        connectLevels = {min = 1, max = 4}
     },
     blockages = {
-        liftChance = 0.2,
-        tunnelChance = 0.01,
+        liftChance = 0.15,
+        tunnelChance = 0.02,
         sizePercent = {min = 0.0015, max = 0.004},
-        gapFillChance = 0.85
+        gapFillChance = 0.7
     },
     tunnels = {
-        widthPercent = {min = 0.0125, max = 0.015},
-        verticalPassages = {min = 1, max = 3}
+        widthPercent = {min = 0.01, max = 0.01},
+        verticalPassages = {min = 2, max = 4},
+        endBranchChance = 0.7
     },
-    maxGenerationAttempts = 5,
+    maxGenerationAttempts = 1,
     mapMarginPercent = 0.05,
-    verticalTunnelWidthPercent = {min = 0.004, max = 0.005}
+    verticalTunnelWidthPercent = {min = 0.003, max = 0.008},
 }
 
 -- Cache
@@ -46,7 +49,7 @@ local insert, remove = table.insert, table.remove
 function MapGenerator.generateAccessibleMine()
     local attempts = 0
     local map, levels
-    local mainMineX = floor(MapGenerator.MAP_W * MapGenerator.config.mainMine.xPosition)
+    local mainMineX = math.floor(MapGenerator.MAP_W * MapGenerator.config.mainMine.xPosition)
     
     -- Accessibility check And retry if fail
     repeat
@@ -291,40 +294,6 @@ function MapGenerator.isSuitableBlockageLocation(map, x, y)
     return openCount >= 2
 end
 
--- Try to fill small gaps between blockades WILL BE CHANGED
-function MapGenerator.fillBlockageGaps(map)
-    -- Iterate through the map and find small gaps between blockades
-    for y = 1, MapGenerator.MAP_H do
-        for x = 2, MapGenerator.MAP_W - 1 do
-            -- Check for horizontal gaps
-            if map[y][x] == MapGenerator.TUNNEL then
-                -- Check left and right for blockages
-                if (map[y][x-1] == MapGenerator.BLOCKAGE and map[y][x+1] == MapGenerator.BLOCKAGE) then
-                    if random() < MapGenerator.config.blockages.gapFillChance then
-                        map[y][x] = MapGenerator.BLOCKAGE
-                    end
-                end
-            end
-        end
-    end
-    
-    -- Do the same for vertical gaps
-    for x = 1, MapGenerator.MAP_W do
-        for y = 2, MapGenerator.MAP_H - 1 do
-            if map[y][x] == MapGenerator.TUNNEL then
-                -- Check above and below for blockages
-                if (map[y-1][x] == MapGenerator.BLOCKAGE and map[y+1][x] == MapGenerator.BLOCKAGE) then
-                    if random() < MapGenerator.config.blockages.gapFillChance then
-                        map[y][x] = MapGenerator.BLOCKAGE
-                    end
-                end
-            end
-        end
-    end
-    
-    return map
-end
-
 -- Add blockages to vertical mines
 function MapGenerator.addVerticalBlockages(map, branchMines, mainX)
     local liftChance = MapGenerator.config.blockages.liftChance
@@ -369,18 +338,52 @@ function MapGenerator.addBlockages(map, branchMines, levels, mainX)
     end
     
     -- Add blockage at enterence for gameplay
-    local firstLevel = levels[1]
-    if firstLevel and firstLevel + 1 <= MapGenerator.MAP_H then
-        blockedMap[firstLevel + 1][mainX] = MapGenerator.BLOCKAGE 
+    for i = 1, #levels - 1 do
+        local currentLevel = levels[i]
+        local nextLevel = levels[i+1]
+        
+        -- Block the vertical shaft starting from just below the current level
+        -- to just above the next level
+        local blockStart = currentLevel + 1
+        local blockEnd = nextLevel - 1
+        
+        for y = blockStart, blockEnd do
+            blockedMap[y][mainX] = MapGenerator.BLOCKAGE
+        end
+        
+        -- Ensure there's a navigable path by connecting horizontal tunnels
+        -- with vertical passages at their ends
+        if i < #levels then
+            -- Add vertical passages at the ends of horizontal tunnels
+            local tunnelWidth = max(2, floor(MapGenerator.MAP_W * random(
+                MapGenerator.config.tunnels.widthPercent.min, 
+                MapGenerator.config.tunnels.widthPercent.max
+            )))
+            
+            -- Left side vertical passage
+            local leftEnd = max(mainX - floor(MapGenerator.MAP_W * MapGenerator.config.levels.length.min), 
+                             floor(MapGenerator.MAP_W * MapGenerator.config.mapMarginPercent))
+            
+            if random() < MapGenerator.config.tunnels.endBranchChance then
+                local passageX = leftEnd + random(0, floor(tunnelWidth * 1.5))
+                MapGenerator.carveVerticalMine(blockedMap, passageX, currentLevel, nextLevel)
+            end
+            
+            -- Right side vertical passage
+            local rightEnd = min(mainX + floor(MapGenerator.MAP_W * MapGenerator.config.levels.length.min),
+                              MapGenerator.MAP_W - floor(MapGenerator.MAP_W * MapGenerator.config.mapMarginPercent))
+            
+            if random() < MapGenerator.config.tunnels.endBranchChance then
+                local passageX = rightEnd - random(0, floor(tunnelWidth * 1.5))
+                MapGenerator.carveVerticalMine(blockedMap, passageX, currentLevel, nextLevel)
+            end
+        end
     end
     
-    -- Add blockages in mines and tunnels
+    -- Add blockages in tunnels
     MapGenerator.addVerticalBlockages(blockedMap, branchMines, mainX)
-    MapGenerator.addHorizontalBlockages(blockedMap, levels)
-    
-    -- Try filling blockade gaps
-    blockedMap = MapGenerator.fillBlockageGaps(blockedMap)
-    
+    MapGenerator.addHorizontalBlockages(blockedMap, levels) 
+
     return blockedMap
 end
 
@@ -419,13 +422,101 @@ function MapGenerator.checkAccessibility(map, targetY, startX)
 end
 
 -- Main function to generate the mine map
+function MapGenerator.ensureConnectivity(map, levels, mainX)
+    -- Check of there is a path per level
+    for i = 1, #levels - 1 do
+        local currentLevel = levels[i]
+        local nextLevel = levels[i+1]
+        
+        -- Temporary map to do check
+        local tempMap = {}
+        for y = currentLevel, nextLevel do
+            tempMap[y - currentLevel + 1] = {}
+            for x = 1, MapGenerator.MAP_W do
+                tempMap[y - currentLevel + 1][x] = map[y][x]
+            end
+        end
+        
+        -- Check if there is a path from the current level to the next
+        local isConnected = false
+        for x = 1, MapGenerator.MAP_W do
+            if tempMap[1][x] == MapGenerator.TUNNEL then
+                -- Try to find a path from this point on the current level 
+                local queue = {{x = x, y = 1}}
+                local visited = {}
+                
+                for y = 1, nextLevel - currentLevel + 1 do
+                    visited[y] = {}
+                end
+                
+                visited[1][x] = true
+                
+                while #queue > 0 do
+                    local current = remove(queue, 1)
+                    local cx, cy = current.x, current.y
+                    
+                    if cy == nextLevel - currentLevel + 1 then
+                        isConnected = true
+                        break
+                    end
+                    
+                    local directions = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}}
+                    for _, dir in ipairs(directions) do
+                        local nx, ny = cx + dir[1], cy + dir[2]
+                        
+                        if nx >= 1 and nx <= MapGenerator.MAP_W and 
+                           ny >= 1 and ny <= nextLevel - currentLevel + 1 and
+                           tempMap[ny][nx] == MapGenerator.TUNNEL and
+                           not visited[ny][nx] then
+                            visited[ny][nx] = true
+                            insert(queue, {x = nx, y = ny})
+                        end
+                    end
+                end
+                
+                if isConnected then break end
+            end
+        end
+        
+        -- If no path found, add a random vertical connection
+        if not isConnected then
+            -- Find a random valid position on the horizontal tunnel
+            local x = -1
+            local attempts = 0
+            while attempts < 10 do
+                local candidate
+                if random() < 0.5 then
+                    -- Try left side
+                    candidate = random(mainX - floor(MapGenerator.MAP_W * MapGenerator.config.levels.length.min), mainX - 1)
+                else
+                    -- Try right side
+                    candidate = random(mainX + 1, mainX + floor(MapGenerator.MAP_W * MapGenerator.config.levels.length.min))
+                end
+                
+                if candidate >= 1 and candidate <= MapGenerator.MAP_W and map[currentLevel][candidate] == MapGenerator.TUNNEL then
+                    x = candidate
+                    break
+                end
+                attempts = attempts + 1
+            end
+            
+            -- If found a valid position, add a vertical passage
+            if x > 0 then
+                MapGenerator.carveVerticalMine(map, x, currentLevel, nextLevel)
+            end
+        end
+    end
+    
+    return map
+end
+
 function MapGenerator.generateMine()
     local map = initializeEmptyMap()
     
     -- Generate levels and main tunnel
     local levelCount = random(MapGenerator.config.levels.count.min, MapGenerator.config.levels.count.max)
     local levels = MapGenerator.generateLevelPositions(levelCount)
-    local mainX = floor(MapGenerator.MAP_W * MapGenerator.config.mainMine.xPosition)
+    local mainX = math.floor(MapGenerator.MAP_W * MapGenerator.config.mainMine.xPosition)
     local mapMargin = floor(MapGenerator.MAP_W * MapGenerator.config.mapMarginPercent)
     
     -- Carve main vertical tunnel
@@ -488,7 +579,10 @@ function MapGenerator.generateMine()
         insert(branchMines, mine)
     end
     
-    return MapGenerator.addBlockages(map, branchMines, levels, mainX), levels
+    local blockedMap = MapGenerator.addBlockages(map, branchMines, levels, mainX)
+    blockedMap = MapGenerator.ensureConnectivity(blockedMap, levels, mainX)
+    
+    return blockedMap, levels
 end
 
 -- Set a random seed
