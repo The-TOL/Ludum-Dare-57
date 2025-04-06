@@ -1,35 +1,45 @@
-local Button = require("libraries/button")
+local Button = require("scripts/button")
 local DeathScreen = require("scenes/death_screen")
+local Player = require("scripts/player")
+local Canary = require("scripts/canary")
 
 local Game = {}
 
 function Game:new(windowWidth, windowHeight, onMainMenu)
-    -- Define the player and background
+    --- Define the player, canary, background and death screen
     local obj = {
-        player = { 
-            x = 400, 
-            y = 100, 
-            spawnX = 400,
-            spawnY = 100,
-            speed = 200, 
-            size = 50, 
-            velocityY = 0, 
-            gravity = 500, 
-            isJumping = false, 
-            isDead = false 
+        player = Player:new(400, 100),
+        canary = Canary:new(),
+        backgrounds = {
+            {
+                sprite = love.graphics.newImage("assets/visual/grey_L1.png"),
+                scrollSpeed = 0.01
+            },
+            {
+                sprite = love.graphics.newImage("assets/visual/grey_L2.png"),
+                scrollSpeed = 0.02
+            },
+            {
+                sprite = love.graphics.newImage("assets/visual/grey_L3.png"),
+                scrollSpeed = 0.03
+            },
+            {
+                sprite = love.graphics.newImage("assets/visual/grey_L4.png"),
+                scrollSpeed = 0.04
+            }
         },
-        -- (Currently a placeholder)
-        caveBackground = love.graphics.newImage("assets/visual/cave_background.png"),
+        cameraY = 100,
         windowWidth = windowWidth,
         windowHeight = windowHeight,
     }
 
-    -- Define deathscreen
     obj.deathScreen = DeathScreen:new(
         windowWidth, 
         windowHeight,
         function() 
-            obj:respawnPlayer() 
+            -- Recreate player and canary instead of just respawning (UPDATE THIS TO RESTART THE ENTIRE SCENE LATER)
+            obj.player = Player:new(400, 100)
+            obj.canary = Canary:new()
         end,
         onMainMenu
     )
@@ -39,71 +49,67 @@ function Game:new(windowWidth, windowHeight, onMainMenu)
     return obj
 end
 
--- Respawning player to initial starting position
-function Game:respawnPlayer()
-    local player = self.player
-    player.x = player.spawnX
-    player.y = player.spawnY
-    player.velocityY = 0
-    player.isJumping = false
-    player.isDead = false
-end
-
+-- Game update functions, see game.lua/player.lua
 function Game:update(dt)
     if not self.player.isDead then
-        local player = self.player
-
-        -- Apply gravity
-        player.velocityY = player.velocityY + player.gravity * dt
-        player.y = player.y + player.velocityY * dt
-
-        -- Prevent player from going beyond window borders
-        if player.y + player.size > self.windowHeight then
-            player.y = self.windowHeight - player.size
-            player.velocityY = 0
-            player.isJumping = false
-        end
-
-        if player.x < 0 then player.x = 0 end
-        if player.x + player.size > self.windowWidth then player.x = self.windowWidth - player.size end
-
-        -- Left/Right movement
-        if love.keyboard.isDown("a") then
-            player.x = player.x - player.speed * dt
-        end
-        if love.keyboard.isDown("d") then
-            player.x = player.x + player.speed * dt
-        end
+        self.player:update(dt, self.windowWidth)
+        self.canary:update(dt)
+        self.cameraY = self.player.y - self.windowHeight * 0.4
     end
 end
 
--- Click listener death screen
+-- Click listener for game
 function Game:mousepressed(x, y, button)
     if self.player.isDead then
         self.deathScreen:mousepressed(x, y, button)
     end
 end
 
--- Jump on spacebar press (and die on Y press, this is for debugging)
+-- Unique inputs (y kills player, u stops falling, space is jump, i toggles oxgen deplete/refill)
 function Game:keypressed(key)
-    local player = self.player
     if key == "y" then
-        player.isDead = true
+        self.player.isDead = true
     end
-    if key == "space" and not player.isJumping and not player.isDead then
-        player.velocityY = -300
-        player.isJumping = true
+    if key == "u" then
+        self.player.gravity = 0
+        self.player.velocityY = 0
+    end
+    if key == "space" and not self.player.isJumping and not self.player.isDead then
+        self.player.velocityY = -300
+        self.player.isJumping = true
+    end
+    if key == "i" then
+        self.player.oxygen:toggleRefill()
+        self.canary.oxygen:toggleRefill()
     end
 end
 
-
 function Game:draw()
-    -- Draw the player and background
+    -- Background parralax logic
     love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.draw(self.caveBackground, 0, 0, 0, self.windowWidth / self.caveBackground:getWidth(), self.windowHeight / self.caveBackground:getHeight())
-    love.graphics.rectangle("fill", self.player.x, self.player.y, self.player.size, self.player.size)
+    for _, bg in ipairs(self.backgrounds) do
+        local scaleX = self.windowWidth / bg.sprite:getWidth()
+        local scaleY = self.windowHeight / bg.sprite:getHeight()
+        local yOffset = (self.player.y * bg.scrollSpeed) % self.windowHeight
+        
+        love.graphics.draw(bg.sprite, 0, -yOffset, 0, scaleX, scaleY)
+        love.graphics.draw(bg.sprite, 0, self.windowHeight - yOffset, 0, scaleX, scaleY)
+    end
     
-    -- Draw death screen overlay if dead
+    -- Draw player and canary
+    self.player:draw(self.cameraY)
+    self.canary:draw(self.player, self.cameraY)
+    
+    -- Draw oxygen meters
+    love.graphics.setColor(1, 1, 1, 1)
+    -- Player oxygen meter
+    love.graphics.rectangle("line", 10, 10, 200, 20)
+    love.graphics.rectangle("fill", 10, 10, 200 * self.player.oxygen:getPercentage(), 20)
+    -- Canary oxygen meter
+    love.graphics.rectangle("line", 10, 40, 100, 10)
+    love.graphics.rectangle("fill", 10, 40, 100 * self.canary.oxygen:getPercentage(), 10)
+    
+    -- Draw death screen
     if self.player.isDead then
         self.deathScreen:draw()
     end
