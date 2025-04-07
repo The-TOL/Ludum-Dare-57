@@ -13,6 +13,7 @@ function Player:new(x, y)
         frameDuration = 0.13, 
         numFrames = 8,
         isMoving = false,
+        clickSound = love.audio.newSource("assets/audio/footstep.mp3", "static"),
         x = x,
         y = y,
         speed = 350,
@@ -73,12 +74,20 @@ function Player:update(dt, world, windowWidth)
             self.x = self.x - self.speed * dt
             self.facingLeft = true
             self.isMoving = true
+            self.clickSound:play()
         end
         if love.keyboard.isDown("d") then
             self.x = self.x + self.speed * dt
             self.facingLeft = false
             self.isMoving = true
+            self.clickSound:play()
         end
+
+        if not self.isMoving then
+            if self.clickSound then
+            self.clickSound:stop()
+        end
+    end
 
         -- Check horzontal collision
         if self:checkCollision(world) then
