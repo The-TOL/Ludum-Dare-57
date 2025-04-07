@@ -61,3 +61,6 @@
 4/7/2025 21:20 PM CET
 - Added a "spawner" tile which spawns entities
 - Added a stalker entity
+
+4/7/2025 21:49 PM CET
+- Added a spider entity

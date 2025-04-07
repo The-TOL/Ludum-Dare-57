@@ -4,7 +4,8 @@ local Player = require("scripts/player")
 local Canary = require("scripts/canary")
 local Camera = require("scripts/camera")
 local worldGenerator = require("scenes/world_generator")
-local Stalker = require("scripts/stalker")  -- Add the Stalker module
+local Stalker = require("scripts/stalker")
+local Spider = require("scripts/spider") 
 
 local Game = {}
 
@@ -57,7 +58,7 @@ function Game:new(windowWidth, windowHeight, onMainMenu)
             width = 7,
             ambientLight = 0.20
         },
-        stalkers = {},
+        stalkers = {},  -- (holds both entities)
         spawners = {},
         spawnerTimers = {}
     }
@@ -127,23 +128,27 @@ function Game:update(dt)
                 
                 -- Only spawn if it's not too close to player (avoid sudden deaths)
                 local distToPlayer = distanceBetween(spawner.x, spawner.y, self.player.x, self.player.y)
-                if distToPlayer > 100 or self.player.isInShack then
-                    -- Get position above the spawner tile
-                    local spawnX, spawnY = worldGenerator.getSpawnPositionAboveTile(
-                        self.world, 
-                        spawner.tileX, 
-                        spawner.tileY
-                    )
-                    
+                -- Get position above the spawner tile
+                local spawnX, spawnY = worldGenerator.getSpawnPositionAboveTile(
+                    self.world, 
+                    spawner.tileX, 
+                    spawner.tileY
+                )
+                
+                -- Randomly decide whether to spawn a Stalker or a Spider
+                if math.random() < 0.5 then
                     table.insert(self.stalkers, Stalker:new(spawnX, spawnY, self.world))
+                else
+                    table.insert(self.stalkers, Spider:new(spawnX, spawnY, self.world))
+                    
                 end
                 
                 self.spawnerTimers[i] = math.random(3, 15)
             end
         end
         
-        for i, stalker in ipairs(self.stalkers) do
-            stalker:update(dt, self.player)
+        for i, entity in ipairs(self.stalkers) do
+            entity:update(dt, self.player)
         end
     end
 end
