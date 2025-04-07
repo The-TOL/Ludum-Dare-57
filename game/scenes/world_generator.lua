@@ -173,16 +173,6 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
                         shackScale / worldGenerator.shackSprite:getHeight()
                     )
                 end
-            elseif tileType == world.SPAWNER then
-                -- Draw the spawner as a purple rectangle
-                love.graphics.setColor(0.7, 0.2, 0.7, 1)
-                love.graphics.rectangle(
-                    "fill", 
-                    (x-1) * world.tileSize, 
-                    (y-1) * world.tileSize - cameraY, 
-                    world.tileSize, 
-                    world.tileSize
-                )
             end
         end
     end

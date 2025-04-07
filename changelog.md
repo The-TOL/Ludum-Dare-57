@@ -82,3 +82,7 @@
 4/8/2025 00:18 AM CET
 - Changed oxygen
 - Removed debug buttons
+
+4/8/2025 00:23 AM CET
+- Oops, missed a debug feature
+
