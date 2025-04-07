@@ -6,9 +6,24 @@ local worldGenerator = {}
 function worldGenerator.generateWorld(tileSize)
     tileSize = tileSize or 32
     local worldSeed = mapGenerator.newSeed()
-    local mapData, mainMineX, playerStartY, levels = mapGenerator.generateAccessibleMine()
+    local mapData, mainMineX, playerStartY, levels, doorPairs = mapGenerator.generateAccessibleMine()
     local playerStartWorldX = (mainMineX - 1) * tileSize + (tileSize / 2)
     local playerStartWorldY = (playerStartY - 1) * tileSize + (tileSize / 2)
+    
+    -- Create level-specific data
+    local levelData = {}
+    
+    for i, levelY in ipairs(levels) do
+        levelData[i] = {
+            yPosition = levelY,
+            worldY = (levelY - 1) * tileSize,
+            isCompleted = false,
+            hasCanary = false,
+            oxygenLevel = 100,
+        }
+    end
+    -- Constants for map tiles
+    local DOORS = mapGenerator.DOORS
     
     local world = {
         seed = worldSeed,
@@ -19,6 +34,7 @@ function worldGenerator.generateWorld(tileSize)
         mapWidth = mapGenerator.MAP_W,
         mapHeight = mapGenerator.MAP_H,
         levels = levels,
+        levelData = levelData,
         WALL = mapGenerator.WALL,
         TUNNEL = mapGenerator.TUNNEL,
         BLOCKAGE = mapGenerator.BLOCKAGE,
@@ -62,8 +78,14 @@ function worldGenerator.checkCollision(world, x, y, width, height)
             local tileType = world.mapData[checkY][checkX]
             if tileType == world.WALL then
                 return {isWall = true}
+            elseif tileType == world.DOORS then
+                doorCollision = true
             end
         end
+    end
+
+    if doorCollision then
+        return {isWall = true, isDoor = true}
     end
 
     return false
@@ -85,11 +107,12 @@ end
 function worldGenerator.drawMap(world, cameraY, cameraX)
     -- Wall color
     local wallColor = {0.5,0.5,0.5,1}
-    -- Door color (choose a color that stands out)
+    -- Door color
     local doorColor = {0.8, 0.4, 0.1, 1}
-    -- Vertical tunnel color (a different shade to distinguish from regular walls)
+    -- Vertical tunnel color
     local verticalTunnelColor = {0.3, 0.3, 0.3, 1}
     local blockageColor = {1, 0.1, 0.1, 1}
+    local platformColor = {0.3, 0.7, 0.3, 1}
     
     -- Calculate visible area
     local startY = math.floor(cameraY / world.tileSize)
@@ -124,7 +147,7 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
                     (y-1) * world.tileSize - cameraY, 
                     world.tileSize, 
                     world.tileSize
-                )
+                )                
             elseif tileType == world.BLOCKAGE then
                 love.graphics.setColor(blockageColor)
                 love.graphics.rectangle(

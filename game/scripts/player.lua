@@ -15,7 +15,7 @@ function Player:new(x, y)
         isMoving = false,
         x = x,
         y = y,
-        speed = 350,
+        speed = 5000,
         size = 130,
         velocityY = 0,
         gravity = 500,
@@ -56,19 +56,16 @@ function Player:checkCollision(world)
 end
 
 function Player:update(dt, world, windowWidth)
-        -- Kill player if oxygen depleted
     if not self.isDead then
         self.oxygen:update(dt)
         if self.oxygen.isDepleted then
             self.isDead = true
         end
 
-        -- Store previous positions
         local prevX, prevY = self.x, self.y
 
         self.isMoving = false
 
-        -- Left/Right movement with facing direction
         if love.keyboard.isDown("a") then
             self.x = self.x - self.speed * dt
             self.facingLeft = true
@@ -90,13 +87,16 @@ function Player:update(dt, world, windowWidth)
         self.y = self.y + self.velocityY * dt
 
         -- Check vertical collision
-        if self:checkCollision(world) then
-            self.y = prevY -- Revert Y if collision
-            self.velocityY = 0
-            self.isJumping = false
+        local collision = self:checkCollision(world)
+        if collision then
+            if not collision.isDoor then
+                self.y = prevY -- Revert Y if collision
+                self.velocityY = 0
+                self.isJumping = false
+            end
+            --TODO FUNCTION FOR LEVEL
         end
 
-        -- Update animation
         if self.isMoving then
             self.animationTimer = self.animationTimer + dt
             if self.animationTimer >= self.frameDuration then

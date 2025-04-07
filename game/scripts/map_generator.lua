@@ -23,7 +23,7 @@ MapGenerator.config = {
     },
     branches = {
         chance = 0.7,
-        minSpacingPercent = 0.015,
+        minSpacingPercent = 0.0005,
         startDepthPercent = 0.2,
         noSpawnZonePercent = 0.03,
         connectLevels = {min = 1, max = 4}
@@ -111,14 +111,14 @@ function MapGenerator.generateLevelPositions(count)
     local margin = floor(MapGenerator.MAP_H * MapGenerator.config.mapMarginPercent)
     local y = margin + random(1, 2)
     insert(positions, y)
-    
+        
     -- Calculate availablel vertical space
     local availableHeight = MapGenerator.MAP_H - (2 * margin)
     local avgSpacing = availableHeight / (count + 1)
     
     for i = 2, count do
-        local minSpacing = floor(avgSpacing * 0.8)
-        local maxSpacing = floor(avgSpacing * 1.2)
+        local minSpacing = floor(avgSpacing * 0.4)
+        local maxSpacing = floor(avgSpacing * 0.4)        
         local spacing = random(minSpacing, maxSpacing)
         
         y = y + spacing
