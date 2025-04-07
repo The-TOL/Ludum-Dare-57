@@ -73,3 +73,7 @@
 4/7/2025 23:30 PM CET
 - Added stalker sprite and animations
 - Fixed spawner tile placement
+
+4/7/2025 23:50 PM CET
+- Added sprite sprite and removed animations
+- Altered gravity and jump velocity

@@ -4,7 +4,7 @@ function Spider:new(x, y, world)
     local obj = {
         x = x,
         y = y,
-        size = 70,
+        size = 80,
         speed = 120,
         direction = math.random(0, 1) == 0 and -1 or 1,
         jumpTimer = 0,
@@ -12,12 +12,7 @@ function Spider:new(x, y, world)
         restInterval = math.random(1, 2),
         isResting = false,
         world = world,
-        sprite = love.graphics.newImage("assets/visual/stalker.png"),
-        frameWidth = nil,
-        currentFrame = 1,
-        animationTimer = 0,
-        frameDuration = 0.15,
-        numFrames = 4,
+        sprite = love.graphics.newImage("assets/visual/spider.png"),
         velocityX = 0,
         velocityY = 0,
         gravity = 700,
@@ -37,10 +32,6 @@ function Spider:new(x, y, world)
         minLungeHeight = 500, 
         wasGroundedLastFrame = false
     }
-    
-    pcall(function()
-        obj.frameWidth = obj.sprite:getWidth() / obj.numFrames
-    end)
     
     setmetatable(obj, self)
     self.__index = self
@@ -114,7 +105,7 @@ function Spider:update(dt, player)
     self.isGrounded = self:isGroundBelow()
     
     if not self.wasGroundedLastFrame and self.isGrounded then
-        self.velocityX = 0  -- Fixed the extra hyphen here
+        self.velocityX = 0
     end
     
     -- Apply gravity
@@ -192,22 +183,6 @@ function Spider:update(dt, player)
             self.jumpInterval = math.random(5, 10)
         end
     end
-    
-    -- Update animation
-    if not self.isGrounded then
-        -- Use a specific frame for jumping
-        self.currentFrame = 2
-    elseif math.abs(self.velocityX) > 0 then  -- Fixed 'else if' to proper 'elseif'
-        -- Animate when moving horizontally
-        self.animationTimer = self.animationTimer + dt
-        if self.animationTimer >= self.frameDuration then
-            self.animationTimer = self.animationTimer - self.frameDuration
-            self.currentFrame = self.currentFrame % self.numFrames + 1
-        end
-    else
-        -- Resting frame
-        self.currentFrame = 1
-    end
 end
 
 -- Check if the entity is colliding with the player
@@ -226,32 +201,20 @@ function Spider:isCollidingWithPlayer(player)
 end
 
 function Spider:draw(cameraY)
-    local scaleX = self.size / self.frameWidth
+    local scaleX = self.size / self.sprite:getWidth()
     if self.direction < 0 then scaleX = -scaleX end
     
     -- Draw the entity
     love.graphics.setColor(1, 1, 1, 1)
     
-    local success = pcall(function()
-        local quad = love.graphics.newQuad(
-            (self.currentFrame - 1) * self.frameWidth,
-            0,
-            self.frameWidth,
-            self.sprite:getHeight(),
-            self.sprite:getWidth(),
-            self.sprite:getHeight()
-        )
-        
-        love.graphics.draw(
-            self.sprite,
-            quad,
-            self.x + (self.direction < 0 and self.size or 0),
-            self.y - cameraY,
-            0,
-            scaleX,
-            self.size / self.sprite:getHeight()
-        )
-    end)
+    love.graphics.draw(
+        self.sprite,
+        self.x + (self.direction < 0 and self.size or 0),
+        self.y - cameraY,
+        0,
+        scaleX,
+        self.size / self.sprite:getHeight()
+    )
 end
 
 return Spider

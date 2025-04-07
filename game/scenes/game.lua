@@ -166,7 +166,7 @@ function Game:keypressed(key)
         self.player.isDead = true
     end
     if key == "space" and not self.player.isJumping and not self.player.isDead then
-        self.player.velocityY = -300
+        self.player.velocityY = -400
         self.player.isJumping = true
     end
     if key == "j" then

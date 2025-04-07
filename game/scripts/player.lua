@@ -18,7 +18,7 @@ function Player:new(x, y)
         speed = 350,
         size = 130,
         velocityY = 0,
-        gravity = 500,
+        gravity = 600,
         isJumping = false,
         isDead = false,
         facingLeft = false,
