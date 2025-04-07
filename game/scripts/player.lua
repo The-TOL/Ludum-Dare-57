@@ -57,73 +57,64 @@ end
 
 function Player:update(dt, world, windowWidth)
     if not self.isDead then
-
-    self.oxygen:update(dt)
-    if self.oxygen.isDepleted then
-        self.isDead = true
-    end
-
-    local prevX, prevY = self.x, self.y
-    
-    self.isMoving = false
-
-    if love.keyboard.isDown("a") then
-        self.x = self.x - self.speed * dt
-        self.facingLeft = true
-        self.isMoving = true
-    end
-    if love.keyboard.isDown("d") then
-        self.x = self.x + self.speed * dt
-        self.facingLeft = false
-        self.isMoving = true
-    end
-
-
-    -- Check for door collision
-    local doorCollision = worldGenerator.getDoorCollision(world, self.x, self.y, self.collisionBox.width, self.collisionBox.height)
-    if doorCollision and doorCollision.isDoor and self.teleportCooldown <= 0 then
-        if worldGenerator.teleportThroughDoor(world, self, doorCollision) then
-            self.teleportCooldown = 1
-            return
+        
+        self.oxygen:update(dt)
+        if self.oxygen.isDepleted then
+            self.isDead = true
         end
-        self.teleportCooldown = 1
-    end
 
-    -- Handle collisions
-    self:handleHorizontalCollision(world, prevX)
-    self:handleVerticalCollision(world, prevY)
+        local prevX, prevY = self.x, self.y
+
+        self.isMoving = false
+
+        if love.keyboard.isDown("a") then
+            self.x = self.x - self.speed * dt
+            self.facingLeft = true
+            self.isMoving = true
+        end
+        if love.keyboard.isDown("d") then
+            self.x = self.x + self.speed * dt
+            self.facingLeft = false
+            self.isMoving = true
+        end
+
+        -- Check horizontal collision
+        local hCollision = self:checkCollision(world)
+        if hCollision then
+            if not hCollision.isDoor then
+                self.x = prevX -- Revert X if collision with non-door
+            else
+                worldGenerator.teleportThroughDoor(world, self, hCollision)
+            end
+        end
 
         -- Vertical gravity
         self.velocityY = self.velocityY + self.gravity * dt
         self.y = self.y + self.velocityY * dt
 
-
-    if self.isMoving then
-        self.animationTimer = self.animationTimer + dt
-        if self.animationTimer >= self.frameDuration then
-            self.animationTimer = self.animationTimer - self.frameDuration
-            self.currentFrame = self.currentFrame % self.numFrames + 1
+        -- Check vertical collision
+        local vCollision = self:checkCollision(world)
+        if vCollision then
+            if not vCollision.isDoor then
+                self.y = prevY -- Revert Y if collision with non-door
+                self.velocityY = 0
+                self.isJumping = false
+            else
+                worldGenerator.teleportThroughDoor(world, self, vCollision)
+            end
         end
-    else
-        self.currentFrame = 3
+
+        if self.isMoving then
+            self.animationTimer = self.animationTimer + dt
+            if self.animationTimer >= self.frameDuration then
+                self.animationTimer = self.animationTimer - self.frameDuration
+                self.currentFrame = self.currentFrame % self.numFrames + 1
+            end
+        else
+            self.currentFrame = 3
+        end
     end
 end
-
-function Player:handleHorizontalCollision(world, prevX)
-    if self:checkCollision(world) then
-        self.x = prevX
-    end
-end
-
-function Player:handleVerticalCollision(world, prevY)
-    local collision = self:checkCollision(world)
-    if collision then
-        self.y = prevY
-        self.velocityY = 0
-        self.isJumping = false
-    end
-end
-
 
 -- Draw player to screen
 function Player:draw(cameraY)

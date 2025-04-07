@@ -1,4 +1,6 @@
---TODO add platforms and doors
+--TODO add platforms and doors, oxygen faster down when lower level and vertical walls 
+-- BUG vertical tunnels and horizontal are somethimes VERY LONG
+-- BUG player becomes the color of the tile it touches somethimes?
 
 local MapGenerator = {}
 
@@ -39,7 +41,7 @@ MapGenerator.config = {
         endBranchChance = 1
     },
     platforms = {
-        spawnChance = 3,
+        spawnChance = 5,
         minLength = 2,
         maxLength = 15,
         minHeight = 1,

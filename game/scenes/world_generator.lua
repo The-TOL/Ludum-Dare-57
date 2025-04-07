@@ -51,99 +51,52 @@ function worldGenerator.generateWorld(tileSize)
     return world
 end 
 
--- Check if player is colliding with a door and determine which door
 function worldGenerator.getDoorCollision(world, x, y, width, height)
-    -- Convert to tile coordinates
     local tileX = math.floor(x / world.tileSize) + 1
     local tileY = math.floor(y / world.tileSize) + 1
-    -- First check if were on a door tile
-    if tileX >= 1 and tileX <= world.mapWidth and tileY >= 1 and tileY <= world.mapHeight then
-        if world.mapData[tileY][tileX] == world.DOORS then
-            -- Find which level we're on
-            local currentLevel = mapGenerator.getCurrentLevel(tileY, world.levels)
-            
-            -- Find which side of the level this door is on (left or right)
-            local doorSide = "unknown"
-            local doorInfo = nil
-            if currentLevel and world.levelData[currentLevel] and world.levelData[currentLevel].doors then
-                -- Check left door
-                if world.levelData[currentLevel].doors.left then
-                    print("left")
-                    local door = world.levelData[currentLevel].doors.left
-                    if tileX >= door.x and tileX < door.x + door.width and
-                       tileY >= door.y and tileY < door.y + door.height then
-                        doorSide = "left"
-                        doorInfo = door
-                    end
-                end
-                
-                -- Check right door
-                if doorSide == "unknown" and world.levelData[currentLevel].doors.right then
-                    print("right")
-                    local door = world.levelData[currentLevel].doors.right
-                    if tileX >= door.x and tileX < door.x + door.width and
-                       tileY >= door.y and tileY < door.y + door.height then
-                        doorSide = "right"
-                        doorInfo = door
-                    end
-                end
-            end
-            
-            return {
-                isDoor = true,
-                level = currentLevel,
-                side = doorSide,
-                doorInfo = doorInfo
-            }
-        end
+    if world.mapData[tileY][tileX] == world.DOORS then
+        local currentLevel = mapGenerator.getCurrentLevel(tileY, world.levels)
+        return { isDoor = true, level = currentLevel }
     end
-    
     return false
 end
 
--- Function to teleport player to a door on another level
 function worldGenerator.teleportThroughDoor(world, player, doorCollision)
-    -- Can only teleport if we have valid door information
-    if not doorCollision or not doorCollision.isDoor or doorCollision.side == "unknown" then
-        return false
-    end
-    print("trying teleport")
-    
     local currentLevel = doorCollision.level
-    local currentSide = doorCollision.side
+    local targetLevel = currentLevel - 1
 
-    print(currentLevel)
-    print(currentSide)
-    
-    -- Determine target level (typically the level below)
-    local targetLevel = currentLevel + 1
-    
-    -- If we're at the bottom level, teleport to the top level
-    if targetLevel > #world.levels then
-        targetLevel = 1
+    -- Get target level's vertical range
+    local targetLevelData = world.levelData[targetLevel]
+    local levelStartY = targetLevelData.yPosition
+    local levelEndY = targetLevel < #world.levels 
+        and (world.levelData[targetLevel + 1].yPosition - 1) 
+        or world.mapHeight
+
+    -- Find all doors in target level
+    local targetDoors = {}
+    for y = levelStartY, levelEndY do
+        for x = 1, world.mapWidth do
+            if world.mapData[y][x] == world.DOORS then
+                table.insert(targetDoors, {x = x, y = y})
+            end
+        end
     end
-    
-    -- Check if target level has a door on the same side
-    if world.levelData[targetLevel] and 
-       world.levelData[targetLevel].doors and 
-       world.levelData[targetLevel].doors[currentSide] then
-        
-        local targetDoor = world.levelData[targetLevel].doors[currentSide]
-        
-        -- Calculate target position (center of door)
-        local targetX = (targetDoor.x + targetDoor.width / 2 - 1) * world.tileSize
-        local targetY = (targetDoor.y + targetDoor.height / 2) * world.tileSize
-        
-        -- Teleport player
-        player.x = targetX
-        player.y = targetY
-        
-        -- Add a teleport effect or sound if desired
-        -- if player.playSound then player:playSound("teleport") end
-        
-        return true
+
+    print("Current Level:", currentLevel)
+    print("Target Level:", targetLevel)
+
+    print(targetLevelData)
+    print("Level Start Y:", levelStartY)
+    print("Level End Y:", levelEndY)
+
+    print("Number of Target Doors:", #targetDoors)
+
+    if #targetDoors > 0 then
+        local door = targetDoors[math.random(#targetDoors)]
+        player.x = (door.x - 1) * world.tileSize + (world.tileSize / 2)
+        player.y = (door.y - 1) * world.tileSize + (world.tileSize / 2)
     end
-    
+        print("No doors found in target level.")
     return false
 end
 
@@ -175,7 +128,7 @@ function worldGenerator.checkCollision(world, x, y, width, height)
             end
             
             local tileType = world.mapData[checkY][checkX]
-            if tileType == world.WALL then
+            if tileType == world.WALL or tileType == world.BLOCKAGE then
                 return {isWall = true}
             elseif tileType == world.DOORS then
                 doorCollision = worldGenerator.getDoorCollision(world, x, y, width, height)
