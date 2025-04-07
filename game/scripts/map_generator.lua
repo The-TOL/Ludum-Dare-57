@@ -18,7 +18,7 @@ MapGenerator.DOORS = 7
 MapGenerator.config = {
     mainMine = { xPosition = 0.4, width = 0.0010 },
     levels = {
-        count = {min = 4, max = 4},
+        count = {min = 8, max = 10}, 
         heightPercent = {min = 0.05, max = 0.2},
         length = {min = 0.1, max = 0.2}
     },
@@ -70,6 +70,7 @@ MapGenerator.config = {
         },
         width = 3,
         height = 6,
+        enforcePairs = true,
     },
     maxGenerationAttempts = 1,
     mapMarginPercent = 0.05,
@@ -440,8 +441,6 @@ function MapGenerator.addJumpPlatforms(map, levelTunnels)
 end
 
 function MapGenerator.addDoorsToLevels(map, levelTunnels, mainX)
-    local doorCount = 0
-    local config = MapGenerator.config.doors
     local doorPositions = {}
     
     for i=1, #levelTunnels do
@@ -454,7 +453,7 @@ function MapGenerator.addDoorsToLevels(map, levelTunnels, mainX)
         local isLastLevel = (levelIndex == #levelTunnels)
         
         -- For first and last levels, place exactly one door
-        if isFirstLevel or isLastLevel then
+        if isFirstLevel then
             -- Choose left or right tunnel randomly
             local side = random(1, 2) -- 1 = left, 2 = right
             local tunnel = (side == 1) and level.left or level.right
@@ -462,17 +461,17 @@ function MapGenerator.addDoorsToLevels(map, levelTunnels, mainX)
             
             -- Calculate valid position range along the tunnel
             local minX = tunnel.left + 2
-            local maxX = tunnel.right - config.width - 2
+            local maxX = tunnel.right - MapGenerator.config.doors.width - 2
             
             -- Make sure there's enough space
             if maxX > minX then
                 -- Pick a random position for the door
                 local doorX = random(minX, maxX)
-                local doorY = tunnel.bottom - config.height + 1
+                local doorY = tunnel.bottom - MapGenerator.config.doors.height + 1
                 
                 -- Place the door
                 for y = doorY, tunnel.bottom do
-                    for x = doorX, doorX + config.width - 1 do
+                    for x = doorX, doorX + MapGenerator.config.doors.width - 1 do
                         if map[y][x] == MapGenerator.TUNNEL then
                             map[y][x] = MapGenerator.DOORS
                         end
@@ -480,38 +479,53 @@ function MapGenerator.addDoorsToLevels(map, levelTunnels, mainX)
                 end
                 
                 -- Store door position
-                doorPositions[levelIndex][sideName] = {x = doorX, y = doorY, width = config.width, height = config.height}
-                doorCount = doorCount + 1
+                doorPositions[levelIndex][sideName] = {x = doorX, y = doorY, width = MapGenerator.config.doors.width, height = MapGenerator.config.doors.height}
             end
         else
-            -- For middle levels, use the original door placement logic with tracking
-            for side, tunnel in pairs({left = level.left, right = level.right}) do
-                if random() <= config.spawnChance then
-                    local minX = tunnel.left + 2
-                    local maxX = tunnel.right - config.width - 2
+            -- Make pairs for all other levels
+            if level.left then
+                local minX = level.left.left + 2
+                local maxX = level.left.right - MapGenerator.config.doors.width - 2
+                
+                if maxX > minX then
+                    local doorX = random(minX, maxX)
+                    local doorY = level.left.bottom - MapGenerator.config.doors.height + 1
                     
-                    if maxX > minX then
-                        local doorX = random(minX, maxX)
-                        local doorY = tunnel.bottom - config.height + 1
-                        
-                        for y = doorY, tunnel.bottom do
-                            for x = doorX, doorX + config.width - 1 do
-                                if map[y][x] == MapGenerator.TUNNEL then
-                                    map[y][x] = MapGenerator.DOORS
-                                end
+                    for y = doorY, level.left.bottom do
+                        for x = doorX, doorX + MapGenerator.config.doors.width - 1 do
+                            if map[y][x] == MapGenerator.TUNNEL then
+                                map[y][x] = MapGenerator.DOORS
                             end
                         end
-                        
-                        -- Store door position
-                        doorPositions[levelIndex][side] = {x = doorX, y = doorY, width = config.width, height = config.height}
-                        doorCount = doorCount + 1
                     end
+                    
+                    doorPositions[levelIndex]["left"] = {x = doorX, y = doorY, width = MapGenerator.config.doors.width, height = MapGenerator.config.doors.height}
+                end
+            end
+            
+            if level.right and not isLastLevel then
+                local minX = level.right.left + 2
+                local maxX = level.right.right - MapGenerator.config.doors.width - 2
+                
+                if maxX > minX then
+                    local doorX = random(minX, maxX)
+                    local doorY = level.right.bottom - MapGenerator.config.doors.height + 1
+                    
+                    for y = doorY, level.right.bottom do
+                        for x = doorX, doorX + MapGenerator.config.doors.width - 1 do
+                            if map[y][x] == MapGenerator.TUNNEL then
+                                map[y][x] = MapGenerator.DOORS
+                            end
+                        end
+                    end
+                    
+                    doorPositions[levelIndex]["right"] = {x = doorX, y = doorY, width = MapGenerator.config.doors.width, height = MapGenerator.config.doors.height}
                 end
             end
         end
     end
     
-    return map, doorCount, doorPositions
+    return map, #doorPositions, doorPositions
 end
 
 
