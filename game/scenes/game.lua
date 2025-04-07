@@ -94,44 +94,48 @@ function Game:keypressed(key)
 end
 
 function Game:draw()
-        local cameraX, cameraY = self.camera:getPosition()
-        self.camera:applyTransform()
-        
+    local cameraX, cameraY = self.camera:getPosition()
     -- Background parralax logic
     love.graphics.setColor(1, 1, 1, 1)
-        for _, bg in ipairs(self.backgrounds) do
-            local scaleX = self.windowWidth / bg.sprite:getWidth()
-            local scaleY = self.windowHeight / bg.sprite:getHeight()
-            local yOffset = (self.player.y * bg.scrollSpeed) % self.windowHeight
-            local xOffset = (cameraX * bg.scrollSpeed) % self.windowWidth
-            
-            -- Draw background
-            love.graphics.draw(bg.sprite, cameraX + xOffset, -yOffset, 0, scaleX, scaleY)
-            love.graphics.draw(bg.sprite, cameraX + xOffset + self.windowWidth, -yOffset, 0, scaleX, scaleY)
-        end
+    for _, bg in ipairs(self.backgrounds) do
+        local scaleX = self.windowWidth / bg.sprite:getWidth()
+        local scaleY = self.windowHeight / bg.sprite:getHeight()
+        local yOffset = (self.player.y * bg.scrollSpeed) % self.windowHeight
+
+        local parallaxX = cameraX * bg.scrollSpeed
         
-        -- Draw the walls
-        worldGenerator.drawMap(self.world, cameraY, cameraX)
-        
-        -- Draw player and canary
-        self.player:draw(cameraY)
-        self.canary:draw(self.player, cameraY)
-        
-        self.camera:removeTransform()
-        
-        -- Draw oxygen meters
-        love.graphics.setColor(1, 1, 1, 1)
-        -- Player oxygen meter
-        love.graphics.rectangle("line", 10, 10, 200, 20)
-        love.graphics.rectangle("fill", 10, 10, 200 * self.player.oxygen:getPercentage(), 20)
-        -- Canary oxygen meter
-        love.graphics.rectangle("line", 10, 40, 100, 10)
-        love.graphics.rectangle("fill", 10, 40, 100 * self.canary.oxygen:getPercentage(), 10)
-        
-        -- Draw death screen
-        if self.player.isDead then
-            self.deathScreen:draw()
-        end
+        -- First background
+        love.graphics.draw(bg.sprite, -parallaxX % self.windowWidth, -yOffset, 0, scaleX, scaleY)
+        -- Second background (for seamless scrolling)
+        love.graphics.draw(bg.sprite, (-parallaxX % self.windowWidth) - self.windowWidth, -yOffset, 0, scaleX, scaleY)
+        -- Third background (for seamless scrolling in the other direction)
+        love.graphics.draw(bg.sprite, (-parallaxX % self.windowWidth) + self.windowWidth, -yOffset, 0, scaleX, scaleY)
     end
+    
+    self.camera:applyTransform()
+    
+    -- Draw the walls
+    worldGenerator.drawMap(self.world, cameraY, cameraX)
+    
+    -- Draw player and canary
+    self.player:draw(cameraY)
+    self.canary:draw(self.player, cameraY)
+    
+    self.camera:removeTransform()
+    
+    -- Draw oxygen meters
+    love.graphics.setColor(1, 1, 1, 1)
+    -- Player oxygen meter
+    love.graphics.rectangle("line", 10, 10, 200, 20)
+    love.graphics.rectangle("fill", 10, 10, 200 * self.player.oxygen:getPercentage(), 20)
+    -- Canary oxygen meter
+    love.graphics.rectangle("line", 10, 40, 100, 10)
+    love.graphics.rectangle("fill", 10, 40, 100 * self.canary.oxygen:getPercentage(), 10)
+    
+    -- Draw death screen
+    if self.player.isDead then
+        self.deathScreen:draw()
+    end
+end
 
 return Game
