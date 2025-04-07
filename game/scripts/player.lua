@@ -22,7 +22,7 @@ function Player:new(x, y)
         isJumping = false,
         isDead = false,
         facingLeft = false,
-        oxygen = Oxygen:new(100, 10),
+        oxygen = Oxygen:new(200, 2),
         collisionBox = {
             offsetX = 35,
             offsetY = 20,
@@ -30,7 +30,13 @@ function Player:new(x, y)
             height = 100
         },
         isInShack = false,
-        nearShack = false
+        nearShack = false,
+        headlightPosition = {
+            offsetX = -23,  
+            offsetY = 48  
+        },
+        glowIntensity = 0.1,
+        glowRadius = 40     
     }
     
     obj.frameWidth = obj.spriteSheet:getWidth() / obj.numFrames
@@ -49,6 +55,21 @@ function Player:getCollisionBox()
     }
 end
 
+-- Returns the player's position for lighting purposes
+function Player:getLightSource()
+    local playerCenterX = self.x + (self.facingLeft and 0 or self.size)
+    local offsetX = self.headlightPosition.offsetX
+    
+    if self.facingLeft then
+        offsetX = -offsetX
+    end
+    
+    return {
+        x = playerCenterX + offsetX,
+        y = self.y + self.headlightPosition.offsetY
+    }
+end
+
 function Player:checkCollision(world)
     -- Get current collision box
     local box = self:getCollisionBox()
@@ -62,7 +83,7 @@ function Player:update(dt, world, windowWidth)
         -- Check if player is in shack to refill oxygen
         local playerX = self.x + self.collisionBox.offsetX + self.collisionBox.width/2
         local playerY = self.y + self.collisionBox.offsetY + self.collisionBox.height/2
-
+        
         -- Check multiple tiles around and below the shack for collision
         local tileRange = 8
         local centerTileX = math.floor(playerX / world.tileSize) + 1
@@ -72,7 +93,7 @@ function Player:update(dt, world, windowWidth)
         for checkY = centerTileY - tileRange, centerTileY + tileRange do
             for checkX = centerTileX - tileRange, centerTileX + tileRange do
                 if checkY >= 1 and checkY <= world.mapHeight and 
-                   checkX >= 1 and checkX <= world.mapWidth then
+                    checkX >= 1 and checkX <= world.mapWidth then
                     if world.mapData[checkY][checkX] == world.SHACK then
                         nearShack = true
                         break
@@ -81,7 +102,7 @@ function Player:update(dt, world, windowWidth)
             end
             if nearShack then break end
         end
-
+        
         self.nearShack = nearShack
         self.oxygen.isRefilling = self.isInShack
         
@@ -89,14 +110,13 @@ function Player:update(dt, world, windowWidth)
         if self.oxygen.isDepleted then
             self.isDead = true
         end
-
+        
         -- Only process movement when not in shack
         if not self.isInShack then
             -- Store previous positions
             local prevX, prevY = self.x, self.y
 
             self.isMoving = false
-
             -- Left/Right movement with facing direction
             if love.keyboard.isDown("a") then
                 self.x = self.x - self.speed * dt
@@ -145,6 +165,18 @@ function Player:draw(cameraY)
     if not self.isInShack then
         local scaleX = self.size / self.frameWidth
         if self.facingLeft then scaleX = -scaleX end
+        
+        -- Add glow effect to player
+        local centerX = self.x + self.size / 2
+        local centerY = self.y + self.size / 2 - cameraY
+        
+        love.graphics.setBlendMode("add")
+        love.graphics.setColor(0.4, 0.4, 0.6, self.glowIntensity)
+        love.graphics.circle("fill", centerX, centerY, self.glowRadius)
+        love.graphics.setBlendMode("alpha")
+        
+        -- Reset color for drawing the player
+        love.graphics.setColor(1, 1, 1, 1)
 
         -- Calculate the quad for the current frame
         local quad = love.graphics.newQuad(
@@ -167,14 +199,26 @@ function Player:draw(cameraY)
         )
     end
 
-    -- Draw prompts when near shack
+end
+
+-- Draw prompts when near shack
+function Player:getPromptInfo(cameraY)
     if self.nearShack and not self.isInShack then
-        love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.print("Press ENTER to enter shack", self.x - 60, self.y - 30 - cameraY)
+        return {
+            text = "Press ENTER to enter shack",
+            x = self.x - 60,
+            y = self.y - 30 - cameraY,
+            isScreenSpace = false
+        }
     elseif self.isInShack then
-        love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.print("Press ENTER to exit shack", 10, 70)
+        return {
+            text = "Press ENTER to exit shack",
+            x = self.x - 60,
+            y = self.y - 30 - cameraY,
+            isScreenSpace = false
+        }
     end
+    return nil
 end
 
 return Player

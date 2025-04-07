@@ -12,8 +12,29 @@ local windowWidth, windowHeight = love.window.getDesktopDimensions()
 
 function love.load()
     -- Load window
-    love.window.setMode(windowWidth, windowHeight, { resizable = false })
+    love.window.setMode(windowWidth, windowHeight, {
+        resizable = false,
+        vsync = true,
+        minwidth = 800,
+        minheight = 600
+    })
     love.window.setTitle("LD57")
+    
+    -- Check shader support
+    local shaderSupported = pcall(function()
+        local testShader = love.graphics.newShader([[
+            vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
+                return color;
+            }
+        ]])
+    end)
+    
+    local canvasSupported = pcall(function()
+        local testCanvas = love.graphics.newCanvas(1, 1)
+    end)
+    
+    love.graphics.shadersSupported = shaderSupported
+    love.graphics.canvasSupported = canvasSupported
 
     -- Make and define variables for the menu scene
     menuScene = Menu:new(windowWidth, windowHeight, 

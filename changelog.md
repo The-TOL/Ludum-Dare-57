@@ -50,3 +50,6 @@
 # Day 3
 4/7/2025 16:40 PM CET
 - Added functionality to enter the shack to refill oxygen, instead of just refilling when near the shack
+
+4/7/2025 18:43 PM CET
+- Added lighting! Way more atmosphere now

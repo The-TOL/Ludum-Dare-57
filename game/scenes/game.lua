@@ -11,6 +11,15 @@ function Game:new(windowWidth, windowHeight, onMainMenu)
     --- Define the player, canary, background and death screen
     local world = worldGenerator.generateWorld(32)
     
+    -- Load lighting shader
+    local lightingShader = nil
+    local useLighting = false
+    
+    if love.graphics.shadersSupported and love.graphics.canvasSupported then
+        lightingShader = love.graphics.newShader("shaders/lighting.glsl")
+        useLighting = true
+    end
+    
     local obj = {
         player = Player:new(world.playerStartX, world.playerStartY),
         canary = Canary:new(),
@@ -36,7 +45,14 @@ function Game:new(windowWidth, windowHeight, onMainMenu)
         windowWidth = windowWidth,
         windowHeight = windowHeight,
         world = world,
-        showFullMap = false
+        showFullMap = false,
+        lightingShader = lightingShader,
+        useLighting = useLighting,
+        lightSettings = {
+            range = 2500,
+            width = 7,
+            ambientLight = 0.20
+        }
     }
 
     obj.deathScreen = DeathScreen:new(
@@ -152,29 +168,85 @@ function Game:draw()
         love.graphics.pop()
     else
         local cameraX, cameraY = self.camera:getPosition()
-        self.camera:applyTransform()
         
-        -- Background parralax logic
-        love.graphics.setColor(1, 1, 1, 1)
-        for _, bg in ipairs(self.backgrounds) do
-            local scaleX = self.windowWidth / bg.sprite:getWidth()
-            local scaleY = self.windowHeight / bg.sprite:getHeight()
-            local yOffset = (self.player.y * bg.scrollSpeed) % self.windowHeight
-            local xOffset = (cameraX * bg.scrollSpeed) % self.windowWidth
+        if self.useLighting then
+            -- First draw all assets
+            local canvas = love.graphics.newCanvas(self.windowWidth, self.windowHeight)
             
-            -- Draw background
-            love.graphics.draw(bg.sprite, cameraX + xOffset, -yOffset, 0, scaleX, scaleY)
-            love.graphics.draw(bg.sprite, cameraX + xOffset + self.windowWidth, -yOffset, 0, scaleX, scaleY)
+            love.graphics.setCanvas(canvas)
+            love.graphics.clear()
+            
+            self.camera:applyTransform()
+            love.graphics.setColor(1, 1, 1, 1)
+        -- Background parralax logic
+            for _, bg in ipairs(self.backgrounds) do
+                local scaleX = self.windowWidth / bg.sprite:getWidth()
+                local scaleY = self.windowHeight / bg.sprite:getHeight()
+                local yOffset = (self.player.y * bg.scrollSpeed) % self.windowHeight
+                local xOffset = (cameraX * bg.scrollSpeed) % self.windowWidth
+                
+                love.graphics.draw(bg.sprite, cameraX + xOffset, -yOffset, 0, scaleX, scaleY)
+                love.graphics.draw(bg.sprite, cameraX + xOffset + self.windowWidth, -yOffset, 0, scaleX, scaleY)
+            end
+            
+            worldGenerator.drawMap(self.world, cameraY, cameraX)
+            self.player:draw(cameraY)
+            self.canary:draw(self.player, cameraY)
+            
+            self.camera:removeTransform()
+            
+            love.graphics.setCanvas()
+            
+            -- Calculate light position and angle
+            local lightSource = self.player:getLightSource()
+            local playerScreenX = lightSource.x - cameraX
+            local playerLightSource = {
+                x = playerScreenX,
+                y = lightSource.y - cameraY
+            }
+            
+            -- Set light angle based on player direction
+            local lightAngle = self.player.facingLeft and math.pi or 0
+            
+            -- Apply the shader 
+            self.lightingShader:send("lightPosition", {playerLightSource.x, playerLightSource.y})
+            self.lightingShader:send("lightAngle", lightAngle)
+            self.lightingShader:send("lightWidth", self.lightSettings.width)
+            self.lightingShader:send("lightRange", self.lightSettings.range)
+            self.lightingShader:send("ambientLight", self.lightSettings.ambientLight)
+            self.lightingShader:send("inShack", self.player.isInShack)
+            
+            -- Apply the shader to the drawn assets
+            love.graphics.setShader(self.lightingShader)
+            love.graphics.draw(canvas)
+            love.graphics.setShader()
+        else
+            -- If lighting doesnt work for player
+            self.camera:applyTransform()
+            
+            love.graphics.setColor(0.5, 0.5, 0.5, 1) 
+            for _, bg in ipairs(self.backgrounds) do
+                local scaleX = self.windowWidth / bg.sprite:getWidth()
+                local scaleY = self.windowHeight / bg.sprite:getHeight()
+                local yOffset = (self.player.y * bg.scrollSpeed) % self.windowHeight
+                local xOffset = (cameraX * bg.scrollSpeed) % self.windowWidth
+                
+                -- Draw background
+                love.graphics.draw(bg.sprite, cameraX + xOffset, -yOffset, 0, scaleX, scaleY)
+                love.graphics.draw(bg.sprite, cameraX + xOffset + self.windowWidth, -yOffset, 0, scaleX, scaleY)
+            end
+            
+            -- Draw the walls
+            love.graphics.setColor(0.3, 0.3, 0.3, 1) 
+            worldGenerator.drawMap(self.world, cameraY, cameraX)
+            
+            -- Draw player and canary
+            love.graphics.setColor(0.7, 0.7, 0.7, 1) 
+            self.player:draw(cameraY)
+            self.canary:draw(self.player, cameraY)
+            
+            self.camera:removeTransform()
         end
-        
-        -- Draw the walls
-        worldGenerator.drawMap(self.world, cameraY, cameraX)
-        
-        -- Draw player and canary
-        self.player:draw(cameraY)
-        self.canary:draw(self.player, cameraY)
-        
-        self.camera:removeTransform()
         
         -- Draw oxygen meters
         love.graphics.setColor(1, 1, 1, 1)
@@ -184,6 +256,19 @@ function Game:draw()
         -- Canary oxygen meter
         love.graphics.rectangle("line", 10, 40, 100, 10)
         love.graphics.rectangle("fill", 10, 40, 100 * self.canary.oxygen:getPercentage(), 10)
+        
+        -- Draw prompts
+        local promptInfo = self.player:getPromptInfo(cameraY)
+        if promptInfo then
+            love.graphics.setColor(1, 1, 1, 1) 
+            if promptInfo.isScreenSpace then
+                love.graphics.print(promptInfo.text, promptInfo.x, promptInfo.y)
+            else
+                self.camera:applyTransform()
+                love.graphics.print(promptInfo.text, promptInfo.x, promptInfo.y)
+                self.camera:removeTransform()
+            end
+        end
         
         -- Draw death screen
         if self.player.isDead then
