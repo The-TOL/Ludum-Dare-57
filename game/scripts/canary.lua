@@ -9,7 +9,7 @@ function Canary:new()
         size = 30,
         anchorX = 85,
         anchorY = 94,
-        oxygen = Oxygen:new(180, 2), 
+        oxygen = Oxygen:new(180, 4.5), 
         isDead = false,
         clickSound = love.audio.newSource("assets/audio/chirp.mp3", "static"),
         alertThresholds = {0.2, 0.1},

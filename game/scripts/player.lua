@@ -22,7 +22,7 @@ function Player:new(x, y)
         isJumping = false,
         isDead = false,
         facingLeft = false,
-        oxygen = Oxygen:new(200, 2),
+        oxygen = Oxygen:new(200, 4.5),
         collisionBox = {
             offsetX = 35,
             offsetY = 20,

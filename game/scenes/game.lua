@@ -162,25 +162,9 @@ end
 
 -- Unique inputs (y kills player, j activates super speed, space is jump, f3 shows the seed map, g regenerates the seed and return enters the shack)
 function Game:keypressed(key)
-    if key == "y" then
-        self.player.isDead = true
-    end
     if key == "space" and not self.player.isJumping and not self.player.isDead then
         self.player.velocityY = -400
         self.player.isJumping = true
-    end
-    if key == "j" then
-        self.player.speed = 2000
-    end
-    if key == "f3" then  
-        self.showFullMap = not self.showFullMap
-    end
-    if key == "g" then
-        self.world = worldGenerator.generateWorld(32)
-        self.player.x = self.world.playerStartX
-        self.player.y = self.world.playerStartY
-        
-        collectgarbage("collect")
     end
     if key == "return" then
         if self.player.nearShack and not self.player.isInShack then

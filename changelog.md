@@ -20,7 +20,7 @@
 - Added a map generator to generate and calculate the map
 
 # Day 2
-4/6/2025 12:30 AM CET
+4/6/2025 00:30 AM CET
 - Added alert sound when canary is low on oxygen
 - Added proper oxygen refilling (test by pressing i to toggle oxygen)
 
@@ -77,3 +77,8 @@
 4/7/2025 23:50 PM CET
 - Added sprite sprite and removed animations
 - Altered gravity and jump velocity
+
+# Day 4
+4/8/2025 00:18 AM CET
+- Changed oxygen
+- Removed debug buttons
