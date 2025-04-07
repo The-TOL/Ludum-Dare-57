@@ -64,3 +64,8 @@
 
 4/7/2025 21:49 PM CET
 - Added a spider entity
+
+4/7/2025 23:13 PM CET
+- Fixed spider entity
+- Made new cover art
+- Properly set up LDjam.com and itch.io pages

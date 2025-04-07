@@ -114,7 +114,7 @@ function Spider:update(dt, player)
     self.isGrounded = self:isGroundBelow()
     
     if not self.wasGroundedLastFrame and self.isGrounded then
-        self.velocityX = 0  -
+        self.velocityX = 0  -- Fixed the extra hyphen here
     end
     
     -- Apply gravity
@@ -193,17 +193,20 @@ function Spider:update(dt, player)
         end
     end
     
+    -- Update animation
     if not self.isGrounded then
+        -- Use a specific frame for jumping
         self.currentFrame = 2
-    else if math.abs(self.velocityX) > 0 then
+    elseif math.abs(self.velocityX) > 0 then  -- Fixed 'else if' to proper 'elseif'
+        -- Animate when moving horizontally
         self.animationTimer = self.animationTimer + dt
         if self.animationTimer >= self.frameDuration then
             self.animationTimer = self.animationTimer - self.frameDuration
             self.currentFrame = self.currentFrame % self.numFrames + 1
         end
     else
+        -- Resting frame
         self.currentFrame = 1
-    end
     end
 end
 

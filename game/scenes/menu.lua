@@ -38,8 +38,8 @@ function Menu:draw()
     local titleScale = 1.2 
     love.graphics.draw(
         self.title, 
-        (love.graphics.getWidth() - titleWidth * titleScale) / 1.7,
-        love.graphics.getHeight() * 0.24, 
+        (love.graphics.getWidth() - titleWidth * titleScale) / 2,
+        love.graphics.getHeight() * 0.03, 
         0,
         titleScale,
         titleScale
