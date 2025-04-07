@@ -28,7 +28,9 @@ function Player:new(x, y)
             offsetY = 20,
             width = 60,
             height = 100
-        }
+        },
+        isInShack = false,
+        nearShack = false
     }
     
     obj.frameWidth = obj.spriteSheet:getWidth() / obj.numFrames
@@ -58,94 +60,121 @@ end
 function Player:update(dt, world, windowWidth)
     if not self.isDead then
         -- Check if player is in shack to refill oxygen
-        local playerTileX = math.floor((self.x + self.collisionBox.offsetX + self.collisionBox.width/2) / world.tileSize) + 1
-        local playerTileY = math.floor((self.y + self.collisionBox.offsetY + self.collisionBox.height) / world.tileSize) + 1
-        
-        if playerTileY >= 1 and playerTileY <= world.mapHeight and 
-           playerTileX >= 1 and playerTileX <= world.mapWidth then
-            local tileType = world.mapData[playerTileY][playerTileX]
+        local playerX = self.x + self.collisionBox.offsetX + self.collisionBox.width/2
+        local playerY = self.y + self.collisionBox.offsetY + self.collisionBox.height/2
 
-            -- Set refill state based on being in shack
-            self.oxygen.isRefilling = (tileType == world.SHACK)
-        else
-            self.oxygen.isRefilling = false
+        -- Check multiple tiles around and below the shack for collision
+        local tileRange = 8
+        local centerTileX = math.floor(playerX / world.tileSize) + 1
+        local centerTileY = math.floor(playerY / world.tileSize) + 1
+        
+        local nearShack = false
+        for checkY = centerTileY - tileRange, centerTileY + tileRange do
+            for checkX = centerTileX - tileRange, centerTileX + tileRange do
+                if checkY >= 1 and checkY <= world.mapHeight and 
+                   checkX >= 1 and checkX <= world.mapWidth then
+                    if world.mapData[checkY][checkX] == world.SHACK then
+                        nearShack = true
+                        break
+                    end
+                end
+            end
+            if nearShack then break end
         end
+
+        self.nearShack = nearShack
+        self.oxygen.isRefilling = self.isInShack
         
         self.oxygen:update(dt)
         if self.oxygen.isDepleted then
             self.isDead = true
         end
 
-        -- Store previous positions
-        local prevX, prevY = self.x, self.y
+        -- Only process movement when not in shack
+        if not self.isInShack then
+            -- Store previous positions
+            local prevX, prevY = self.x, self.y
 
-        self.isMoving = false
+            self.isMoving = false
 
-        -- Left/Right movement with facing direction
-        if love.keyboard.isDown("a") then
-            self.x = self.x - self.speed * dt
-            self.facingLeft = true
-            self.isMoving = true
-        end
-        if love.keyboard.isDown("d") then
-            self.x = self.x + self.speed * dt
-            self.facingLeft = false
-            self.isMoving = true
-        end
-
-        -- Check horzontal collision
-        if self:checkCollision(world) then
-            self.x = prevX
-        end
-
-        -- Vertical gravity
-        self.velocityY = self.velocityY + self.gravity * dt
-        self.y = self.y + self.velocityY * dt
-
-        -- Check vertical collision
-        if self:checkCollision(world) then
-            self.y = prevY -- Revert Y if collision
-            self.velocityY = 0
-            self.isJumping = false
-        end
-
-        -- Update animation
-        if self.isMoving then
-            self.animationTimer = self.animationTimer + dt
-            if self.animationTimer >= self.frameDuration then
-                self.animationTimer = self.animationTimer - self.frameDuration
-                self.currentFrame = self.currentFrame % self.numFrames + 1
+            -- Left/Right movement with facing direction
+            if love.keyboard.isDown("a") then
+                self.x = self.x - self.speed * dt
+                self.facingLeft = true
+                self.isMoving = true
             end
-        else
-            self.currentFrame = 3
+            if love.keyboard.isDown("d") then
+                self.x = self.x + self.speed * dt
+                self.facingLeft = false
+                self.isMoving = true
+            end
+
+            -- Check horzontal collision
+            if self:checkCollision(world) then
+                self.x = prevX
+            end
+
+            -- Vertical gravity
+            self.velocityY = self.velocityY + self.gravity * dt
+            self.y = self.y + self.velocityY * dt
+
+            -- Check vertical collision
+            if self:checkCollision(world) then
+                self.y = prevY -- Revert Y if collision
+                self.velocityY = 0
+                self.isJumping = false
+            end
+
+            -- Update animation
+            if self.isMoving then
+                self.animationTimer = self.animationTimer + dt
+                if self.animationTimer >= self.frameDuration then
+                    self.animationTimer = self.animationTimer - self.frameDuration
+                    self.currentFrame = self.currentFrame % self.numFrames + 1
+                end
+            else
+                self.currentFrame = 3
+            end
         end
     end
 end
 
 -- Draw player to screen
 function Player:draw(cameraY)
-    local scaleX = self.size / self.frameWidth
-    if self.facingLeft then scaleX = -scaleX end
+    -- Only draw player if not in shack
+    if not self.isInShack then
+        local scaleX = self.size / self.frameWidth
+        if self.facingLeft then scaleX = -scaleX end
 
-    -- Calculate the quad for the current frame
-    local quad = love.graphics.newQuad(
-        (self.currentFrame - 1) * self.frameWidth,
-        0,
-        self.frameWidth,
-        self.spriteSheet:getHeight(),
-        self.spriteSheet:getWidth(),
-        self.spriteSheet:getHeight()
-    )
-    
-    love.graphics.draw(
-        self.spriteSheet,
-        quad,
-        self.x + (self.facingLeft and self.size or 0),
-        self.y - cameraY,
-        0,
-        scaleX,
-        self.size / self.spriteSheet:getHeight()
-    )
+        -- Calculate the quad for the current frame
+        local quad = love.graphics.newQuad(
+            (self.currentFrame - 1) * self.frameWidth,
+            0,
+            self.frameWidth,
+            self.spriteSheet:getHeight(),
+            self.spriteSheet:getWidth(),
+            self.spriteSheet:getHeight()
+        )
+        
+        love.graphics.draw(
+            self.spriteSheet,
+            quad,
+            self.x + (self.facingLeft and self.size or 0),
+            self.y - cameraY,
+            0,
+            scaleX,
+            self.size / self.spriteSheet:getHeight()
+        )
+    end
+
+    -- Draw prompts when near shack
+    if self.nearShack and not self.isInShack then
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.print("Press ENTER to enter shack", self.x - 60, self.y - 30 - cameraY)
+    elseif self.isInShack then
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.print("Press ENTER to exit shack", 10, 70)
+    end
 end
 
 return Player

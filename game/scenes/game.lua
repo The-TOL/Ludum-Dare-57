@@ -101,6 +101,13 @@ function Game:keypressed(key)
         self.player.x = self.world.playerStartX
         self.player.y = self.world.playerStartY
     end
+    if key == "return" then
+        if self.player.nearShack and not self.player.isInShack then
+            self.player.isInShack = true
+        elseif self.player.isInShack then
+            self.player.isInShack = false
+        end
+    end
 end
 
 function Game:draw()

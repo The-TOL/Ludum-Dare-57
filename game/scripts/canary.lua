@@ -28,7 +28,7 @@ end
 
 -- Anchor canary sprite relative to the player
 function Canary:draw(player, cameraY)
-    if not self.isDead then
+    if not self.isDead and not player.isInShack then
         local canaryScaleX = self.size / self.sprite:getWidth()
         local canaryX
         

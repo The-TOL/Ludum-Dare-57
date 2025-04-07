@@ -46,3 +46,7 @@
 4/6/2025 23:05 PM CET
 - Added shacks as a tile
 - Added oxygen refilling when in shack tile (only registers in a very small radius currently)
+
+# Day 3
+4/7/2025 16:40 PM CET
+- Added functionality to enter the shack to refill oxygen, instead of just refilling when near the shack
