@@ -1,4 +1,4 @@
---TODO add platforms, blockages and level transitions
+--TODO add platforms, blockages and level transitions also add vertical line after every horizontal line and fix background, horizontal lines can be too long 
 
 local MapGenerator = {}
 
@@ -8,6 +8,8 @@ MapGenerator.MAP_H = 1080
 MapGenerator.TUNNEL = 0
 MapGenerator.WALL = 1
 MapGenerator.BLOCKAGE = 2
+MapGenerator.DOORS = 4
+MapGenerator.VERTICAL_TUNNEL = 5
 
 -- Configuration settings
 -- Constants and config will be moved later
@@ -124,7 +126,7 @@ function MapGenerator.carveVerticalMine(map, x, yStart, yEnd)
     for y = yStart, min(yEnd, MapGenerator.MAP_H) do
         local row = map[y]
         for bx = startX, endX do
-            row[bx] = MapGenerator.TUNNEL
+            row[bx] = MapGenerator.VERTICAL_TUNNEL
         end
     end
 end
@@ -211,182 +213,6 @@ function MapGenerator.addBranchMines(map, levels, mainX)
     return branchMines
 end
 
--- Create blockages in tunnels
-function MapGenerator.createBlockageCluster(map, x, y, type)
-    local minSize = MapGenerator.config.blockages.sizePercent.min
-    local maxSize = MapGenerator.config.blockages.sizePercent.max
-    local size = floor(MapGenerator.MAP_W * random(minSize, maxSize))
-    local halfSize = floor(size / 2)
-    
-    if type == "vertical" then
-        -- Vertical blockage
-        local startY = max(1, y - halfSize)
-        local endY = min(MapGenerator.MAP_H, y + halfSize)
-        
-        for by = startY, endY do
-            map[by][x] = MapGenerator.BLOCKAGE
-            
-            -- Add horizontal extensions
-            local hExtent = floor(MapGenerator.MAP_W * random(0.0005, 0.0015))
-            for bx = max(1, x - hExtent), min(MapGenerator.MAP_W, x + hExtent) do
-                if map[by][bx] == MapGenerator.TUNNEL then
-                    map[by][bx] = MapGenerator.BLOCKAGE
-                end
-            end
-        end
-    else
-        -- Horizontal or diagonal blockage based on random direction
-        local direction = random(1, 2)
-        
-        if direction == 1 then
-            -- Horizontal
-            local startX = max(1, x - halfSize)
-            local endX = min(MapGenerator.MAP_W, x + halfSize)
-            
-            for bx = startX, endX do
-                if map[y][bx] == MapGenerator.TUNNEL then
-                    map[y][bx] = MapGenerator.BLOCKAGE
-                    
-                    -- Extend vertically with chance
-                    if random() < 0.5 and y > 1 and map[y-1][bx] == MapGenerator.TUNNEL then
-                        map[y-1][bx] = MapGenerator.BLOCKAGE
-                    end
-                    if random() < 0.5 and y < MapGenerator.MAP_H and map[y+1][bx] == MapGenerator.TUNNEL then
-                        map[y+1][bx] = MapGenerator.BLOCKAGE
-                    end
-                end
-            end
-        else 
-            -- Vertical
-            local startY = max(1, y - halfSize)
-            local endY = min(MapGenerator.MAP_H, y + halfSize)
-            
-            for by = startY, endY do
-                if map[by][x] == MapGenerator.TUNNEL then
-                    map[by][x] = MapGenerator.BLOCKAGE
-                    
-                    -- Extend horizontally with chance
-                    if random() < 0.5 and x > 1 and map[by][x-1] == MapGenerator.TUNNEL then
-                        map[by][x-1] = MapGenerator.BLOCKAGE
-                    end
-                    if random() < 0.5 and x < MapGenerator.MAP_W and map[by][x+1] == MapGenerator.TUNNEL then
-                        map[by][x+1] = MapGenerator.BLOCKAGE
-                    end
-                end
-            end
-        end
-    end
-end
-
--- Check if location is suitable for blockage
-function MapGenerator.isSuitableBlockageLocation(map, x, y)
-    local directions = {{-1,0}, {1,0}, {0,-1}, {0,1}}
-    local openCount = 0
-    
-    for _, dir in ipairs(directions) do
-        local nx, ny = x + dir[1], y + dir[2]
-        if nx >= 1 and nx <= MapGenerator.MAP_W and ny >= 1 and ny <= MapGenerator.MAP_H and
-           map[ny][nx] == MapGenerator.TUNNEL then
-            openCount = openCount + 1
-        end
-    end
-    
-    return openCount >= 2
-end
-
--- Add blockages to vertical mines
-function MapGenerator.addVerticalBlockages(map, branchMines, mainX)
-    local liftChance = MapGenerator.config.blockages.liftChance
-    
-    for _, mine in ipairs(branchMines) do
-        if mine.x ~= mainX and random() < liftChance then
-            local blockY = random(mine.startY, mine.endY)
-            MapGenerator.createBlockageCluster(map, mine.x, blockY, "vertical")
-        end
-    end
-end
-
--- Add blockages to horizontal tunnels Will be changes is old code. TODO
-function MapGenerator.addHorizontalBlockages(map, levels)
-    local tunnelChance = MapGenerator.config.blockages.tunnelChance
-    
-    for _, y in ipairs(levels) do
-        local x = 1
-        while x <= MapGenerator.MAP_W do
-            if map[y][x] == MapGenerator.TUNNEL and 
-               random() < tunnelChance and
-               MapGenerator.isSuitableBlockageLocation(map, x, y) then
-                
-                MapGenerator.createBlockageCluster(map, x, y, "horizontal")
-                -- Skip ahead to avoid dense blockages
-                x = x + floor(MapGenerator.MAP_W * MapGenerator.config.blockages.sizePercent.max * 2)
-            end
-            x = x + 1
-        end
-    end
-end
-
--- Add blockages to the map
-function MapGenerator.addBlockages(map, branchMines, levels, mainX)
-    -- Create a copy of the map
-    local blockedMap = {}
-    for y = 1, MapGenerator.MAP_H do
-        blockedMap[y] = {}
-        for x = 1, MapGenerator.MAP_W do
-            blockedMap[y][x] = map[y][x]
-        end
-    end
-    
-    -- Add blockage at enterence for gameplay
-    for i = 1, #levels - 1 do
-        local currentLevel = levels[i]
-        local nextLevel = levels[i+1]
-        
-        -- Block the vertical shaft starting from just below the current level
-        -- to just above the next level
-        local blockStart = currentLevel + 1
-        local blockEnd = nextLevel - 1
-        
-        for y = blockStart, blockEnd do
-            blockedMap[y][mainX] = MapGenerator.BLOCKAGE
-        end
-        
-        -- Ensure there's a navigable path by connecting horizontal tunnels
-        -- with vertical passages at their ends
-        if i < #levels then
-            -- Add vertical passages at the ends of horizontal tunnels
-            local tunnelWidth = max(2, floor(MapGenerator.MAP_W * random(
-                MapGenerator.config.tunnels.widthPercent.min, 
-                MapGenerator.config.tunnels.widthPercent.max
-            )))
-            
-            -- Left side vertical passage
-            local leftEnd = max(mainX - floor(MapGenerator.MAP_W * MapGenerator.config.levels.length.min), 
-                             floor(MapGenerator.MAP_W * MapGenerator.config.mapMarginPercent))
-            
-            if random() < MapGenerator.config.tunnels.endBranchChance then
-                local passageX = leftEnd + random(0, floor(tunnelWidth * 1.5))
-                MapGenerator.carveVerticalMine(blockedMap, passageX, currentLevel, nextLevel)
-            end
-            
-            -- Right side vertical passage
-            local rightEnd = min(mainX + floor(MapGenerator.MAP_W * MapGenerator.config.levels.length.min),
-                              MapGenerator.MAP_W - floor(MapGenerator.MAP_W * MapGenerator.config.mapMarginPercent))
-            
-            if random() < MapGenerator.config.tunnels.endBranchChance then
-                local passageX = rightEnd - random(0, floor(tunnelWidth * 1.5))
-                MapGenerator.carveVerticalMine(blockedMap, passageX, currentLevel, nextLevel)
-            end
-        end
-    end
-    
-    -- Add blockages in tunnels
-    MapGenerator.addVerticalBlockages(blockedMap, branchMines, mainX)
-    MapGenerator.addHorizontalBlockages(blockedMap, levels) 
-
-    return blockedMap
-end
-
 -- Check if it is possible to go the deepest level WIll be changes when end goal is discussed
 function MapGenerator.checkAccessibility(map, targetY, startX)
     local queue = {{x = startX, y = 1}}
@@ -421,92 +247,71 @@ function MapGenerator.checkAccessibility(map, targetY, startX)
     return false
 end
 
--- Main function to generate the mine map
-function MapGenerator.ensureConnectivity(map, levels, mainX)
-    -- Check of there is a path per level
-    for i = 1, #levels - 1 do
-        local currentLevel = levels[i]
-        local nextLevel = levels[i+1]
-        
-        -- Temporary map to do check
-        local tempMap = {}
-        for y = currentLevel, nextLevel do
-            tempMap[y - currentLevel + 1] = {}
-            for x = 1, MapGenerator.MAP_W do
-                tempMap[y - currentLevel + 1][x] = map[y][x]
-            end
-        end
-        
-        -- Check if there is a path from the current level to the next
-        local isConnected = false
-        for x = 1, MapGenerator.MAP_W do
-            if tempMap[1][x] == MapGenerator.TUNNEL then
-                -- Try to find a path from this point on the current level 
-                local queue = {{x = x, y = 1}}
-                local visited = {}
-                
-                for y = 1, nextLevel - currentLevel + 1 do
-                    visited[y] = {}
-                end
-                
-                visited[1][x] = true
-                
-                while #queue > 0 do
-                    local current = remove(queue, 1)
-                    local cx, cy = current.x, current.y
-                    
-                    if cy == nextLevel - currentLevel + 1 then
-                        isConnected = true
-                        break
+function MapGenerator.addVerticalDoors(map, levels, branchMines)
+
+
+    local doorCount = 0
+    local doorLength = 5
+
+    -- Process each vertical mine
+    for _, mine in ipairs(branchMines) do
+        local x = mine.x
+
+        -- Find intersections
+        for _, levelY in ipairs(levels) do
+            -- Check if level intersects with the vertical mine
+            if levelY >= mine.startY and levelY <= mine.endY then
+                local isTunnelAbove = levelY > 1 and (map[levelY-1][x] == MapGenerator.TUNNEL or map[levelY-1][x] == MapGenerator.VERTICAL_TUNNEL)
+                local isTunnelBelow = levelY < MapGenerator.MAP_H and (map[levelY+1][x] == MapGenerator.TUNNEL or map[levelY+1][x] == MapGenerator.VERTICAL_TUNNEL)
+
+                if isTunnelAbove and isTunnelBelow then
+                    -- Find door start and end points
+                    local halfDoor = math.floor(doorLength / 2)
+                    local doorStart = math.max(1, x - halfDoor)
+                    local doorEnd = math.min(MapGenerator.MAP_W, x + halfDoor)
+
+                    -- Place door above the horizontal tunnel
+                    for doorX = doorStart, doorEnd do
+                        if map[levelY-1][doorX] == MapGenerator.TUNNEL or map[levelY-1][doorX] == MapGenerator.VERTICAL_TUNNEL then
+                            map[levelY-1][doorX] = MapGenerator.DOORS
+                            doorCount = doorCount + 1
+                        end
                     end
-                    
-                    local directions = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}}
-                    for _, dir in ipairs(directions) do
-                        local nx, ny = cx + dir[1], cy + dir[2]
-                        
-                        if nx >= 1 and nx <= MapGenerator.MAP_W and 
-                           ny >= 1 and ny <= nextLevel - currentLevel + 1 and
-                           tempMap[ny][nx] == MapGenerator.TUNNEL and
-                           not visited[ny][nx] then
-                            visited[ny][nx] = true
-                            insert(queue, {x = nx, y = ny})
+
+                    -- Calculate end of the horizontal tunnel from config
+                    local tunnelWidth = math.max(2, math.floor(MapGenerator.MAP_W * MapGenerator.config.tunnels.widthPercent.min))
+                    local horizontalEndY = levelY + tunnelWidth - 1
+                    local yBelow = horizontalEndY + 1
+
+                    -- Place door below the horizontal tunnel if vertical mine continues
+                    if yBelow <= MapGenerator.MAP_H and (map[yBelow][x] == MapGenerator.TUNNEL or map[yBelow][x] == MapGenerator.VERTICAL_TUNNEL) then
+                        for doorX = doorStart, doorEnd do
+                            if map[yBelow][doorX] == MapGenerator.TUNNEL or map[yBelow][doorX] == MapGenerator.VERTICAL_TUNNEL then
+                                map[yBelow][doorX] = MapGenerator.DOORS
+                                doorCount = doorCount + 1
+                            end
                         end
                     end
                 end
-                
-                if isConnected then break end
             end
         end
-        
-        -- If no path found, add a random vertical connection
-        if not isConnected then
-            -- Find a random valid position on the horizontal tunnel
-            local x = -1
-            local attempts = 0
-            while attempts < 10 do
-                local candidate
-                if random() < 0.5 then
-                    -- Try left side
-                    candidate = random(mainX - floor(MapGenerator.MAP_W * MapGenerator.config.levels.length.min), mainX - 1)
-                else
-                    -- Try right side
-                    candidate = random(mainX + 1, mainX + floor(MapGenerator.MAP_W * MapGenerator.config.levels.length.min))
+
+        -- Generate doors at the top of the vertical line with offset
+        if map[mine.startY][x] == MapGenerator.TUNNEL or map[mine.startY][x] == MapGenerator.VERTICAL_TUNNEL then
+            local halfDoor = math.floor(doorLength / 2)
+            local doorStart = math.max(1, x - halfDoor)
+            local doorEnd = math.min(MapGenerator.MAP_W, x + halfDoor)
+
+            for doorX = doorStart, doorEnd do
+                -- Offset top door by 3 tiles
+                if map[mine.startY + 3][doorX] == MapGenerator.TUNNEL or map[mine.startY + 3][doorX] == MapGenerator.VERTICAL_TUNNEL then
+                    map[mine.startY + 3][doorX] = MapGenerator.DOORS
+                    doorCount = doorCount + 1
                 end
-                
-                if candidate >= 1 and candidate <= MapGenerator.MAP_W and map[currentLevel][candidate] == MapGenerator.TUNNEL then
-                    x = candidate
-                    break
-                end
-                attempts = attempts + 1
-            end
-            
-            -- If found a valid position, add a vertical passage
-            if x > 0 then
-                MapGenerator.carveVerticalMine(map, x, currentLevel, nextLevel)
             end
         end
     end
-    
+
     return map
 end
 
@@ -579,12 +384,11 @@ function MapGenerator.generateMine()
         insert(branchMines, mine)
     end
     
-    local blockedMap = MapGenerator.addBlockages(map, branchMines, levels, mainX)
-    blockedMap = MapGenerator.ensureConnectivity(blockedMap, levels, mainX)
+    --Call Extra generation functions
+    map = MapGenerator.addVerticalDoors(map, levels, branchMines)
     
-    return blockedMap, levels
+    return map, levels
 end
-
 -- Set a random seed
 function MapGenerator.newSeed()
     local seed = os.time() * random(100)
