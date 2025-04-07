@@ -69,3 +69,7 @@
 - Fixed spider entity
 - Made new cover art
 - Properly set up LDjam.com and itch.io pages
+
+4/7/2025 23:30 PM CET
+- Added stalker sprite and animations
+- Fixed spawner tile placement

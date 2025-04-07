@@ -30,12 +30,14 @@ function worldGenerator.generateWorld(tileSize)
     }
     
     -- Stay away from player start position
-    local safeRadius = 200
+    local safeRadius = 500
+    local minSpawnerDistance = 300  -- Minimum distance between spawners
     local spawnerCount = 0
     local attempts = 0
     local maxAttempts = 600
+    local placedSpawners = {}  -- Track positions of placed spawners
     
-    -- Spawn 12 spawners randomly
+    -- Spawn 12 spawners randomly with proper spacing
     while spawnerCount < 12 and attempts < maxAttempts do
         attempts = attempts + 1
         
@@ -47,9 +49,24 @@ function worldGenerator.generateWorld(tileSize)
             local tileY = (randY - 1) * world.tileSize + (world.tileSize / 2)
             local distanceToPlayer = math.sqrt((tileX - playerStartWorldX)^2 + (tileY - playerStartWorldY)^2)
             
+            -- Check distance to player
             if distanceToPlayer > safeRadius then
-                world.mapData[randY][randX] = world.SPAWNER
-                spawnerCount = spawnerCount + 1
+                -- Check distance to other spawners
+                local tooClose = false
+                for _, spawner in ipairs(placedSpawners) do
+                    local spawnerDist = math.sqrt((tileX - spawner.x)^2 + (tileY - spawner.y)^2)
+                    if spawnerDist < minSpawnerDistance then
+                        tooClose = true
+                        break
+                    end
+                end
+                
+                -- Place the spawner if not too close to others
+                if not tooClose then
+                    world.mapData[randY][randX] = world.SPAWNER
+                    table.insert(placedSpawners, {x = tileX, y = tileY})
+                    spawnerCount = spawnerCount + 1
+                end
             end
         end
     end

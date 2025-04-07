@@ -4,7 +4,7 @@ function Stalker:new(x, y, world)
     local obj = {
         x = x,
         y = y,
-        size = 80,
+        size = 100,
         speed = 100,
         direction = math.random(0, 1) == 0 and -1 or 1, 
         moveTimer = 0,
@@ -17,7 +17,7 @@ function Stalker:new(x, y, world)
         currentFrame = 1,
         animationTimer = 0,
         frameDuration = 0.2,
-        numFrames = 4,
+        numFrames = 8,
         velocityY = 0,
         gravity = 500,
         isJumping = false,
