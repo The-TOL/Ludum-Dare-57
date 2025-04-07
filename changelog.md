@@ -51,5 +51,6 @@
 4/7/2025 16:40 PM CET
 - Added functionality to enter the shack to refill oxygen, instead of just refilling when near the shack
 
-4/7/2025 18:43 PM CET
+4/7/2025 18:58 PM CET
 - Added lighting! Way more atmosphere now
+- Fixed shack rendering

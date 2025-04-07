@@ -105,14 +105,20 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
                     world.tileSize
                 )
             elseif tileType == world.SHACK then
+                -- Scale en center the shack sprite over the tile
+                local shackScale = world.tileSize * 11
+                local shackWidth = shackScale
+                
+                local centerOffset = (shackWidth / 2) - (world.tileSize / 2)
+                
                 love.graphics.setColor(1, 1, 1, 1)
                 love.graphics.draw(
                     worldGenerator.shackSprite,
-                    (x-1) * world.tileSize,
+                    (x-1) * world.tileSize - centerOffset,
                     (y-1) * world.tileSize - cameraY - (world.tileSize * 10), 
                     0,
-                    world.tileSize * 11 / worldGenerator.shackSprite:getWidth(),
-                    world.tileSize * 11 / worldGenerator.shackSprite:getHeight()
+                    shackScale / worldGenerator.shackSprite:getWidth(),
+                    shackScale / worldGenerator.shackSprite:getHeight()
                 )
             end
         end
