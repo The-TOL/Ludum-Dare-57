@@ -4,6 +4,7 @@ local Player = require("scripts/player")
 local Canary = require("scripts/canary")
 local Camera = require("scripts/camera")
 local worldGenerator = require("scenes/world_generator")
+local Stalker = require("scripts/stalker")  -- Add the Stalker module
 
 local Game = {}
 
@@ -55,7 +56,10 @@ function Game:new(windowWidth, windowHeight, onMainMenu)
             range = 2500,
             width = 7,
             ambientLight = 0.20
-        }
+        },
+        stalkers = {},
+        spawners = {},
+        spawnerTimers = {}
     }
 
     obj.deathScreen = DeathScreen:new(
@@ -76,6 +80,24 @@ function Game:new(windowWidth, windowHeight, onMainMenu)
     -- Set initial camera position to focus on player
     obj.camera:update(0, obj.player, obj.world.width, obj.world.height)
 
+    -- Find and initialize spawners
+    for y = 1, obj.world.mapHeight do
+        for x = 1, obj.world.mapWidth do
+            if obj.world.mapData[y][x] == obj.world.SPAWNER then
+                local spawnerX = (x - 1) * obj.world.tileSize + (obj.world.tileSize / 2) 
+                local spawnerY = (y - 1) * obj.world.tileSize + (obj.world.tileSize / 2)
+                
+                table.insert(obj.spawners, {
+                    x = spawnerX,
+                    y = spawnerY,
+                    tileX = x,
+                    tileY = y
+                })
+                table.insert(obj.spawnerTimers, math.random(3, 20))
+            end
+        end
+    end
+
     setmetatable(obj, self)
     self.__index = self
     return obj
@@ -94,6 +116,35 @@ function Game:update(dt)
         self.canary.oxygen.isRefilling = self.player.oxygen.isRefilling
         self.canary:update(dt)
         self.camera:update(dt, self.player, self.world.width, self.world.height)
+        
+        -- Update spawners
+        for i, timer in ipairs(self.spawnerTimers) do
+            self.spawnerTimers[i] = timer - dt
+            
+            -- Spawn when expired
+            if self.spawnerTimers[i] <= 0 then
+                local spawner = self.spawners[i]
+                
+                -- Only spawn if it's not too close to player (avoid sudden deaths)
+                local distToPlayer = distanceBetween(spawner.x, spawner.y, self.player.x, self.player.y)
+                if distToPlayer > 100 or self.player.isInShack then
+                    -- Get position above the spawner tile
+                    local spawnX, spawnY = worldGenerator.getSpawnPositionAboveTile(
+                        self.world, 
+                        spawner.tileX, 
+                        spawner.tileY
+                    )
+                    
+                    table.insert(self.stalkers, Stalker:new(spawnX, spawnY, self.world))
+                end
+                
+                self.spawnerTimers[i] = math.random(3, 15)
+            end
+        end
+        
+        for i, stalker in ipairs(self.stalkers) do
+            stalker:update(dt, self.player)
+        end
     end
 end
 
@@ -104,7 +155,7 @@ function Game:mousepressed(x, y, button)
     end
 end
 
--- Unique inputs (y kills player, u stops falling, space is jump, i toggles oxgen deplete/refill)
+-- Unique inputs (y kills player, j activates super speed, space is jump, f3 shows the seed map, g regenerates the seed and return enters the shack)
 function Game:keypressed(key)
     if key == "y" then
         self.player.isDead = true
@@ -112,10 +163,6 @@ function Game:keypressed(key)
     if key == "space" and not self.player.isJumping and not self.player.isDead then
         self.player.velocityY = -300
         self.player.isJumping = true
-    end
-    if key == "i" then
-        self.player.oxygen:toggleRefill()
-        self.canary.oxygen:toggleRefill()
     end
     if key == "j" then
         self.player.speed = 2000
@@ -167,6 +214,8 @@ function Game:draw()
                     love.graphics.setColor(0, 0.7, 0, 1)
                 elseif self.world.mapData[y][x] == self.world.BLOCKAGE then
                     love.graphics.setColor(1, 0, 0, 1)
+                elseif self.world.mapData[y][x] == self.world.SPAWNER then
+                    love.graphics.setColor(0.7, 0.2, 0.7, 1)
                 end
                 
                 love.graphics.rectangle("fill", tileX, tileY, 
@@ -177,6 +226,12 @@ function Game:draw()
         -- Draw player position indicator
         love.graphics.setColor(1, 1, 0, 1)
         love.graphics.circle("fill", self.player.x, self.player.y, 10)
+        
+        -- Add drawing entities on the map
+        love.graphics.setColor(0, 0, 1, 1) 
+        for _, stalker in ipairs(self.stalkers) do
+            love.graphics.circle("fill", stalker.x + stalker.size/2, stalker.y + stalker.size/2, 8)
+        end
         
         love.graphics.pop()
     else
@@ -201,6 +256,11 @@ function Game:draw()
             end
             
             worldGenerator.drawMap(self.world, cameraY, cameraX)
+            
+            -- Draw entities before player
+            for _, stalker in ipairs(self.stalkers) do
+                stalker:draw(cameraY)
+            end
             
             -- Draw player and canary
             self.player:draw(cameraY)
@@ -252,6 +312,12 @@ function Game:draw()
             -- Draw the walls
             love.graphics.setColor(0.3, 0.3, 0.3, 1) 
             worldGenerator.drawMap(self.world, cameraY, cameraX)
+            
+            -- Draw entities
+            love.graphics.setColor(0.7, 0.7, 0.7, 1)
+            for _, stalker in ipairs(self.stalkers) do
+                stalker:draw(cameraY)
+            end
             
             -- Draw player and canary
             love.graphics.setColor(0.7, 0.7, 0.7, 1) 

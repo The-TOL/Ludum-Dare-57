@@ -8,7 +8,8 @@ MapGenerator.MAP_H = 1080
 MapGenerator.TUNNEL = 0
 MapGenerator.WALL = 1
 MapGenerator.BLOCKAGE = 2
-MapGenerator.SHACK = 3 
+MapGenerator.SHACK = 3
+MapGenerator.SPAWNER = 4  -- New tile type for entity spawning
 
 -- Configuration settings
 -- Constants and config will be moved later

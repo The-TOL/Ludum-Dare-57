@@ -57,3 +57,7 @@
 
 4/7/2025 19:57 PM CET
 - Heavily optimized the game
+
+4/7/2025 21:20 PM CET
+- Added a "spawner" tile which spawns entities
+- Added a stalker entity

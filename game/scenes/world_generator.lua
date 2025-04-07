@@ -24,9 +24,35 @@ function worldGenerator.generateWorld(tileSize)
         TUNNEL = mapGenerator.TUNNEL,
         BLOCKAGE = mapGenerator.BLOCKAGE,
         SHACK = mapGenerator.SHACK,
+        SPAWNER = mapGenerator.SPAWNER, -- Add the spawner constant to the world
         playerStartX = playerStartWorldX,
         playerStartY = playerStartWorldY
     }
+    
+    -- Stay away from player start position
+    local safeRadius = 200
+    local spawnerCount = 0
+    local attempts = 0
+    local maxAttempts = 600
+    
+    -- Spawn 12 spawners randomly
+    while spawnerCount < 12 and attempts < maxAttempts do
+        attempts = attempts + 1
+        
+        local randX = math.random(1, world.mapWidth)
+        local randY = math.random(1, world.mapHeight)
+        
+        if world.mapData[randY][randX] == world.TUNNEL then
+            local tileX = (randX - 1) * world.tileSize + (world.tileSize / 2)
+            local tileY = (randY - 1) * world.tileSize + (world.tileSize / 2)
+            local distanceToPlayer = math.sqrt((tileX - playerStartWorldX)^2 + (tileY - playerStartWorldY)^2)
+            
+            if distanceToPlayer > safeRadius then
+                world.mapData[randY][randX] = world.SPAWNER
+                spawnerCount = spawnerCount + 1
+            end
+        end
+    end
     
     return world
 end
@@ -130,9 +156,27 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
                         shackScale / worldGenerator.shackSprite:getHeight()
                     )
                 end
+            elseif tileType == world.SPAWNER then
+                -- Draw the spawner as a purple rectangle
+                love.graphics.setColor(0.7, 0.2, 0.7, 1)
+                love.graphics.rectangle(
+                    "fill", 
+                    (x-1) * world.tileSize, 
+                    (y-1) * world.tileSize - cameraY, 
+                    world.tileSize, 
+                    world.tileSize
+                )
             end
         end
     end
+end
+
+-- Position for spawning entity
+function worldGenerator.getSpawnPositionAboveTile(world, tileX, tileY)
+    local worldX = (tileX - 1) * world.tileSize + (world.tileSize / 2)
+    local worldY = (tileY - 1) * world.tileSize - world.tileSize
+    
+    return worldX, worldY
 end
 
 function worldGenerator.drawDebug(world, cameraY, cameraX)
