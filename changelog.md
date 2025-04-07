@@ -54,3 +54,6 @@
 4/7/2025 18:58 PM CET
 - Added lighting! Way more atmosphere now
 - Fixed shack rendering
+
+4/7/2025 19:57 PM CET
+- Heavily optimized the game

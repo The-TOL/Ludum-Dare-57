@@ -79,19 +79,20 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
     -- Original wall drawing (keep your existing colors)
     local wallColor = {0.5, 0.5, 0.5, 1}
     
-    -- Calculate visible area
-    local startY = math.floor(cameraY / world.tileSize)
-    local endY = math.ceil((cameraY + love.graphics.getHeight()) / world.tileSize)
-    local startX = math.floor(cameraX / world.tileSize)
-    local endX = math.ceil((cameraX + love.graphics.getWidth()) / world.tileSize)
+    -- Calculate visible area with some padding
+    local padding = 2 -- Add a small buffer of tiles
+    local startY = math.floor(cameraY / world.tileSize) - padding
+    local endY = math.ceil((cameraY + love.graphics.getHeight()) / world.tileSize) + padding
+    local startX = math.floor(cameraX / world.tileSize) - padding
+    local endX = math.ceil((cameraX + love.graphics.getWidth()) / world.tileSize) + padding
     
-    -- Ensure were within map bounds
+    -- Ensure we're within map bounds
     startY = math.max(1, startY)
     endY = math.min(world.mapHeight, endY)
     startX = math.max(1, startX)
     endX = math.min(world.mapWidth, endX)
     
-    -- First draw regular tiles
+    -- First draw regular tiles (only visible ones)
     for y = startY, endY do
         for x = startX, endX do
             local tileType = world.mapData[y][x]
@@ -105,21 +106,30 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
                     world.tileSize
                 )
             elseif tileType == world.SHACK then
-                -- Scale en center the shack sprite over the tile
-                local shackScale = world.tileSize * 11
-                local shackWidth = shackScale
+                -- Only draw shacks if they're close to being visible
+                local shackX = (x-1) * world.tileSize
+                local shackY = (y-1) * world.tileSize - cameraY - (world.tileSize * 10)
                 
-                local centerOffset = (shackWidth / 2) - (world.tileSize / 2)
+                -- Check if shack is close to screen before drawing
+                if shackY > -world.tileSize * 12 and 
+                   shackY < love.graphics.getHeight() + world.tileSize * 2 then
                 
-                love.graphics.setColor(1, 1, 1, 1)
-                love.graphics.draw(
-                    worldGenerator.shackSprite,
-                    (x-1) * world.tileSize - centerOffset,
-                    (y-1) * world.tileSize - cameraY - (world.tileSize * 10), 
-                    0,
-                    shackScale / worldGenerator.shackSprite:getWidth(),
-                    shackScale / worldGenerator.shackSprite:getHeight()
-                )
+                    -- Scale and center the shack sprite over the tile
+                    local shackScale = world.tileSize * 11
+                    local shackWidth = shackScale
+                    
+                    local centerOffset = (shackWidth / 2) - (world.tileSize / 2)
+                    
+                    love.graphics.setColor(1, 1, 1, 1)
+                    love.graphics.draw(
+                        worldGenerator.shackSprite,
+                        shackX - centerOffset,
+                        shackY, 
+                        0,
+                        shackScale / worldGenerator.shackSprite:getWidth(),
+                        shackScale / worldGenerator.shackSprite:getHeight()
+                    )
+                end
             end
         end
     end

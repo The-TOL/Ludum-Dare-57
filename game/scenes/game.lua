@@ -3,7 +3,7 @@ local DeathScreen = require("scenes/death_screen")
 local Player = require("scripts/player")
 local Canary = require("scripts/canary")
 local Camera = require("scripts/camera")
-local worldGenerator = require("scenes.world_generator")
+local worldGenerator = require("scenes/world_generator")
 
 local Game = {}
 
@@ -14,40 +14,43 @@ function Game:new(windowWidth, windowHeight, onMainMenu)
     -- Load lighting shader
     local lightingShader = nil
     local useLighting = false
+    local gameCanvas = nil
     
     if love.graphics.shadersSupported and love.graphics.canvasSupported then
         lightingShader = love.graphics.newShader("shaders/lighting.glsl")
         useLighting = true
+        -- Create canvas once instead of every frame (oops!)
+        gameCanvas = love.graphics.newCanvas(windowWidth, windowHeight)
+    end
+    
+    -- Pre-load and cache all background images to avoid reloading
+    local backgrounds = {}
+    local bgImages = {
+        "assets/visual/grey_L1.png",
+        "assets/visual/grey_L2.png",
+        "assets/visual/grey_L3.png",
+        "assets/visual/grey_L4.png"
+    }
+    
+    for i, path in ipairs(bgImages) do
+        backgrounds[i] = {
+            sprite = love.graphics.newImage(path),
+            scrollSpeed = i * 0.01
+        }
     end
     
     local obj = {
         player = Player:new(world.playerStartX, world.playerStartY),
         canary = Canary:new(),
         camera = Camera:new(windowWidth, windowHeight),
-        backgrounds = {
-            {
-                sprite = love.graphics.newImage("assets/visual/grey_L1.png"),
-                scrollSpeed = 0.01
-            },
-            {
-                sprite = love.graphics.newImage("assets/visual/grey_L2.png"),
-                scrollSpeed = 0.02
-            },
-            {
-                sprite = love.graphics.newImage("assets/visual/grey_L3.png"),
-                scrollSpeed = 0.03
-            },
-            {
-                sprite = love.graphics.newImage("assets/visual/grey_L4.png"),
-                scrollSpeed = 0.04
-            }
-        },
+        backgrounds = backgrounds,
         windowWidth = windowWidth,
         windowHeight = windowHeight,
         world = world,
         showFullMap = false,
         lightingShader = lightingShader,
         useLighting = useLighting,
+        gameCanvas = gameCanvas,
         lightSettings = {
             range = 2500,
             width = 7,
@@ -59,10 +62,13 @@ function Game:new(windowWidth, windowHeight, onMainMenu)
         windowWidth, 
         windowHeight,
         function() 
+            -- Cleanup old world data
             obj.world = worldGenerator.generateWorld(32)
             obj.player = Player:new(obj.world.playerStartX, obj.world.playerStartY)
             obj.canary = Canary:new()
             obj.camera = Camera:new(windowWidth, windowHeight)
+            
+            collectgarbage("collect")
         end,
         onMainMenu
     )
@@ -73,6 +79,11 @@ function Game:new(windowWidth, windowHeight, onMainMenu)
     setmetatable(obj, self)
     self.__index = self
     return obj
+end
+
+-- Calculate distance between two points
+local function distanceBetween(x1, y1, x2, y2)
+    return math.sqrt((x2 - x1)^2 + (y2 - y1)^2)
 end
 
 -- Game update functions, see game.lua/player.lua
@@ -116,6 +127,8 @@ function Game:keypressed(key)
         self.world = worldGenerator.generateWorld(32)
         self.player.x = self.world.playerStartX
         self.player.y = self.world.playerStartY
+        
+        collectgarbage("collect")
     end
     if key == "return" then
         if self.player.nearShack and not self.player.isInShack then
@@ -170,15 +183,13 @@ function Game:draw()
         local cameraX, cameraY = self.camera:getPosition()
         
         if self.useLighting then
-            -- First draw all assets
-            local canvas = love.graphics.newCanvas(self.windowWidth, self.windowHeight)
-            
-            love.graphics.setCanvas(canvas)
+            love.graphics.setCanvas(self.gameCanvas)
             love.graphics.clear()
             
             self.camera:applyTransform()
             love.graphics.setColor(1, 1, 1, 1)
-        -- Background parralax logic
+            
+            -- Background parallax logic
             for _, bg in ipairs(self.backgrounds) do
                 local scaleX = self.windowWidth / bg.sprite:getWidth()
                 local scaleY = self.windowHeight / bg.sprite:getHeight()
@@ -190,6 +201,8 @@ function Game:draw()
             end
             
             worldGenerator.drawMap(self.world, cameraY, cameraX)
+            
+            -- Draw player and canary
             self.player:draw(cameraY)
             self.canary:draw(self.player, cameraY)
             
@@ -218,10 +231,10 @@ function Game:draw()
             
             -- Apply the shader to the drawn assets
             love.graphics.setShader(self.lightingShader)
-            love.graphics.draw(canvas)
+            love.graphics.draw(self.gameCanvas)
             love.graphics.setShader()
         else
-            -- If lighting doesnt work for player
+            -- If lighting doesn't work for player
             self.camera:applyTransform()
             
             love.graphics.setColor(0.5, 0.5, 0.5, 1) 
@@ -275,6 +288,15 @@ function Game:draw()
             self.deathScreen:draw()
         end
     end
+end
+
+function Game:destroy()
+    if self.gameCanvas then
+        self.gameCanvas:release()
+        self.gameCanvas = nil
+    end
+    
+    collectgarbage("collect")
 end
 
 return Game
