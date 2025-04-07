@@ -18,7 +18,7 @@ function Player:new(x, y)
         speed = 5000,
         size = 130,
         velocityY = 0,
-        gravity = 500,
+        gravity = 1500,
         isJumping = false,
         isDead = false,
         facingLeft = false,
@@ -64,9 +64,9 @@ function Player:update(dt, world, windowWidth)
         end
 
         local prevX, prevY = self.x, self.y
-
         self.isMoving = false
 
+        -- Handle horizontal movement first
         if love.keyboard.isDown("a") then
             self.x = self.x - self.speed * dt
             self.facingLeft = true
@@ -81,29 +81,41 @@ function Player:update(dt, world, windowWidth)
         -- Check horizontal collision
         local hCollision = self:checkCollision(world)
         if hCollision then
-            if not hCollision.isDoor then
-                self.x = prevX -- Revert X if collision with non-door
-            else
+            if hCollision.isWall or hCollision.isPlatform then
+                self.x = prevX -- Revert X if collision with wall or platform edge
+            elseif hCollision.isDoor then
                 worldGenerator.teleportThroughDoor(world, self, hCollision)
             end
         end
 
-        -- Vertical gravity
+        -- Apply gravity to velocity
         self.velocityY = self.velocityY + self.gravity * dt
+        
+        -- Store previous Y position
+        local prevY = self.y
+        
+        -- Apply vertical movement
         self.y = self.y + self.velocityY * dt
-
-        -- Check vertical collision
+        
+        -- Check vertical collision after moving
         local vCollision = self:checkCollision(world)
         if vCollision then
-            if not vCollision.isDoor then
-                self.y = prevY -- Revert Y if collision with non-door
+            if vCollision.isPlatform and self.velocityY > 0 then
+                -- Landing on platform from above
+                self.y = vCollision.resolveY or prevY
                 self.velocityY = 0
                 self.isJumping = false
-            else
+            elseif vCollision.isWall then
+                -- Hitting wall from any direction
+                self.y = prevY
+                self.velocityY = 0
+                self.isJumping = false
+            elseif vCollision.isDoor then
                 worldGenerator.teleportThroughDoor(world, self, vCollision)
             end
         end
 
+        -- Update animation
         if self.isMoving then
             self.animationTimer = self.animationTimer + dt
             if self.animationTimer >= self.frameDuration then
@@ -111,7 +123,7 @@ function Player:update(dt, world, windowWidth)
                 self.currentFrame = self.currentFrame % self.numFrames + 1
             end
         else
-            self.currentFrame = 3
+            self.currentFrame = 3 -- Idle frame
         end
     end
 end

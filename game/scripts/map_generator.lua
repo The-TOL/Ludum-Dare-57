@@ -1,7 +1,3 @@
---TODO add platforms and doors, oxygen faster down when lower level and vertical walls 
--- BUG vertical tunnels and horizontal are somethimes VERY LONG
--- BUG player becomes the color of the tile it touches somethimes?
-
 local MapGenerator = {}
 
 -- Constants
@@ -42,24 +38,24 @@ MapGenerator.config = {
     },
     platforms = {
         spawnChance = 5,
-        minLength = 2,
+        minLength = 5,
         maxLength = 15,
         minHeight = 1,
         maxHeight = 1,
         minVerticalGap = 3,
-        minDistanceFromWall = 2
+        minDistanceFromWall = 0
     },
     stackedPlatforms = {
         enabled = true,  
-        chance = 1,  
-        maxStackHeight = 3,  
+        chance = 200,  
+        maxStackHeight = 4,  
         verticalGap = {
-            min = 3,
-            max = 5,
+            min = 2,
+            max = 4,
         },          
         horizontalOffset = {      
-            min = -5,
-            max = 5
+            min = -2,
+            max = 2
         }
     },
     doors = {
@@ -349,10 +345,45 @@ function MapGenerator.addVerticalBlockages(map, levels, branchMines)
 
     return map
 end
+
 function MapGenerator.addJumpPlatforms(map, levelTunnels)
     local platformCount = 0
     local config = MapGenerator.config.platforms
     local stackConfig = MapGenerator.config.stackedPlatforms
+    
+    -- Create a buffer zone
+    local placedPlatforms = {}
+    local bufferRadius = 2
+    
+    -- Progressive probability
+    local baseSpawnChance = config.spawnChance / 10
+    local maxSpawnChance = 0.9
+    local chanceIncrement = 0.05
+    local currentSpawnChance = baseSpawnChance
+    local attemptsSinceLastPlatform = 0
+    
+    -- Check if a position conflicts
+    local function checkBufferZone(x, y, length, height)
+        -- Check the whole platform
+        for py = y - bufferRadius, y + height - 1 + bufferRadius do
+            for px = x - bufferRadius, x + length - 1 + bufferRadius do
+                if px < 1 or px > MapGenerator.MAP_W or py < 1 or py > MapGenerator.MAP_H then
+                    goto continue
+                end
+                
+                -- Check if this position is within buffer of any existing platform
+                for _, platform in ipairs(placedPlatforms) do
+                    if px >= platform.x - bufferRadius and px <= platform.x + platform.length - 1 + bufferRadius and
+                       py >= platform.y - bufferRadius and py <= platform.y + platform.height - 1 + bufferRadius then
+                        return false
+                    end
+                end
+                
+                ::continue::
+            end
+        end
+        return true
+    end
     
     -- Check if a platform can be placed
     local function canPlacePlatform(x, y, length, height)
@@ -364,7 +395,7 @@ function MapGenerator.addJumpPlatforms(map, levelTunnels)
                 end
             end
         end
-        return true
+        return checkBufferZone(x, y, length, height)
     end
     
     -- Place a platform
@@ -374,6 +405,19 @@ function MapGenerator.addJumpPlatforms(map, levelTunnels)
                 map[py][px] = MapGenerator.PLATFORM
             end
         end
+        
+        -- Track the placed platform
+        table.insert(placedPlatforms, {
+            x = x,
+            y = y,
+            length = length,
+            height = height
+        })
+        
+        -- Reset the progressive probability
+        currentSpawnChance = baseSpawnChance
+        attemptsSinceLastPlatform = 0
+        
         return length * height
     end
     
@@ -386,10 +430,35 @@ function MapGenerator.addJumpPlatforms(map, levelTunnels)
                 goto continue
             end
             
+            local tunnelHeight = tunnel.bottom - tunnel.top
+            local possibleRows = {}
+            
+            -- Create fixed rows
+            local firstRow = tunnel.top + math.floor(tunnelHeight * 0.25)
+            local secondRow = tunnel.top + math.floor(tunnelHeight * 0.5)
+            local thirdRow = tunnel.top + math.floor(tunnelHeight * 0.75)
+            
+            if firstRow >= tunnel.top + config.minVerticalGap then
+                table.insert(possibleRows, firstRow)
+            end
+            if secondRow >= tunnel.top + config.minVerticalGap and
+               secondRow >= firstRow + config.minVerticalGap then
+                table.insert(possibleRows, secondRow)
+            end
+            if thirdRow >= tunnel.top + config.minVerticalGap and
+               thirdRow >= secondRow + config.minVerticalGap then
+                table.insert(possibleRows, thirdRow)
+            end
+            
+            if #possibleRows == 0 then
+                goto continue
+            end
+            
             -- Attempt to place platforms
-            local attempts = math.floor(tunnelWidth / 10)
+            local attempts = math.floor(tunnelWidth / 4)
             for _ = 1, attempts do
-                if random() <= config.spawnChance / 10 then
+                -- Use progressive probability
+                if random() <= currentSpawnChance then
                     -- Random position within tunnel
                     local x = random(tunnel.left + config.minDistanceFromWall, 
                                      tunnel.right - config.minDistanceFromWall - config.minLength)
@@ -397,11 +466,11 @@ function MapGenerator.addJumpPlatforms(map, levelTunnels)
                     local length = random(config.minLength, math.min(config.maxLength, tunnel.right - x))
                     local height = random(config.minHeight, config.maxHeight)
                     
-                    -- Position in upper half of tunnel
-                    local y = random(tunnel.top + config.minVerticalGap, 
-                                    (tunnel.top + tunnel.bottom) / 2)
+                    -- Choose a row
+                    local rowIndex = random(1, #possibleRows)
+                    local y = possibleRows[rowIndex]
                     
-                    -- Place platform if space is available
+                    -- Place platform if space is available                    
                     if canPlacePlatform(x, y, length, height) then
                         platformCount = platformCount + placePlatform(x, y, length, height)
                         
@@ -411,13 +480,18 @@ function MapGenerator.addJumpPlatforms(map, levelTunnels)
                             local currentY = y
                             
                             for _ = 1, stackHeight do
-                                -- Calculate next position with offset
-                                currentY = currentY - random(stackConfig.verticalGap.min, 
-                                                           stackConfig.verticalGap.max) - height
-                                                           
-                                local offsetX = random(stackConfig.horizontalOffset.min, 
-                                                    stackConfig.horizontalOffset.max)
-                                                    
+                                -- Use fixed vertical gaps for stacked platforms
+                                local verticalGap = random(stackConfig.verticalGap.min, stackConfig.verticalGap.max)
+                                currentY = currentY - verticalGap - height
+                                
+                                -- Calculate horizontal offset
+                                local offsetX = random(stackConfig.horizontalOffset.min, stackConfig.horizontalOffset.max)
+                                
+                                -- If offset is too small, push it to minimum separation
+                                if math.abs(offsetX) < bufferRadius then
+                                    offsetX = offsetX < 0 and -bufferRadius or bufferRadius
+                                end
+                                
                                 local stackX = math.max(x + offsetX, tunnel.left + config.minDistanceFromWall)
                                 stackX = math.min(stackX, tunnel.right - config.minDistanceFromWall - length)
                                 
@@ -429,7 +503,12 @@ function MapGenerator.addJumpPlatforms(map, levelTunnels)
                                 end
                             end
                         end
+                    else
+                        attemptsSinceLastPlatform = attemptsSinceLastPlatform + 5
                     end
+                else
+                    attemptsSinceLastPlatform = attemptsSinceLastPlatform + 2
+                    currentSpawnChance = math.min(maxSpawnChance, baseSpawnChance + (attemptsSinceLastPlatform * chanceIncrement))
                 end
             end
             ::continue::
@@ -523,8 +602,7 @@ function MapGenerator.generateMine()
     local levels = MapGenerator.generateLevelPositions(levelCount)
     local mainX = math.floor(MapGenerator.MAP_W * MapGenerator.config.mainMine.xPosition)
     local mapMargin = floor(MapGenerator.MAP_W * MapGenerator.config.mapMarginPercent)
-    
-    -- Carve main vertical tunnel
+        -- Carve main vertical tunnel
     MapGenerator.carveVerticalMine(map, mainX, 1, MapGenerator.MAP_H)
     
     -- Track branches and tunnels
@@ -532,6 +610,7 @@ function MapGenerator.generateMine()
     local levelTunnels = {} 
     
     -- Create horizontal levels
+    local levelTunnels = {} 
     for i, y in ipairs(levels) do
         -- Calculate tunnel properties
         local tunnelWidth = max(2, floor(MapGenerator.MAP_W * random(
@@ -546,8 +625,8 @@ function MapGenerator.generateMine()
         -- Create an entry for this level's tunnels
         levelTunnels[i] = {}
         
-            -- Procces left side
-        local leftLength = floor(MapGenerator.MAP_W * random(
+        -- Procces left side
+            local leftLength = floor(MapGenerator.MAP_W * random(
             MapGenerator.config.levels.length.min, 
             MapGenerator.config.levels.length.max
         ))
@@ -562,9 +641,9 @@ function MapGenerator.generateMine()
         
         MapGenerator.carveHorizontalTunnel(map, leftEnd, mainX, y, tunnelWidth)
         
-            -- Procces right side
+        -- Procces right side
 
-        local rightLength = floor(MapGenerator.MAP_W * random(
+            local rightLength = floor(MapGenerator.MAP_W * random(
             MapGenerator.config.levels.length.min, 
             MapGenerator.config.levels.length.max
         ))
@@ -579,6 +658,10 @@ function MapGenerator.generateMine()
         
         MapGenerator.carveHorizontalTunnel(map, mainX, rightEnd, y, tunnelWidth)
     end
+    
+    MapGenerator.carveVerticalMine(map, mainX, 1, MapGenerator.MAP_H)
+    
+    local branchMines = {{x = mainX, startY = 1, endY = MapGenerator.MAP_H}}
     
     local newBranchMines = MapGenerator.addBranchMines(map, levels, mainX)
     for _, mine in ipairs(newBranchMines) do

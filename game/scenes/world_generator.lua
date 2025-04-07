@@ -104,43 +104,61 @@ end
 function worldGenerator.checkCollision(world, x, y, width, height)
     width = width or world.tileSize
     height = height or world.tileSize
-    
+
     -- Calculate collision bounds using player's collision box
     local left = x
     local right = x + width
     local top = y
     local bottom = y + height
-    
+
     -- Convert to tile coordinates
     local tileLeft = math.floor(left / world.tileSize) + 1
     local tileRight = math.ceil(right / world.tileSize)
     local tileTop = math.floor(top / world.tileSize) + 1
     local tileBottom = math.ceil(bottom / world.tileSize)
-    
-    -- Door collision info
-    local doorCollision = nil
-    
-    -- Check for wall collision
+
+    -- Ensure were checking within map bounds
+    tileLeft = math.max(1, math.min(tileLeft, world.mapWidth))
+    tileRight = math.max(1, math.min(tileRight, world.mapWidth))
+    tileTop = math.max(1, math.min(tileTop, world.mapHeight))
+    tileBottom = math.max(1, math.min(tileBottom, world.mapHeight))
+
+    -- Check all tiles in collision area
     for checkY = tileTop, tileBottom do
         for checkX = tileLeft, tileRight do
-            if checkX < 1 or checkX > world.mapWidth or checkY < 1 or checkY > world.mapHeight then
-                return {isWall = true}
-            end
-            
             local tileType = world.mapData[checkY][checkX]
-            if tileType == world.WALL or tileType == world.BLOCKAGE then
-                return {isWall = true}
-            elseif tileType == world.DOORS then
-                doorCollision = worldGenerator.getDoorCollision(world, x, y, width, height)
+            
+            if tileType == world.DOORS then
+                return { 
+                    isDoor = true, 
+                    level = mapGenerator.getCurrentLevel(checkY, world.levels) 
+                }
             end
         end
     end
     
-    -- If we found a door, return door collision data
-    if doorCollision then
-        return doorCollision
+    -- Check for walls and platforms
+    for checkY = tileTop, tileBottom do
+        for checkX = tileLeft, tileRight do
+            local tileType = world.mapData[checkY][checkX]
+            
+            if tileType == world.WALL then
+                return { isWall = true }
+            elseif tileType == world.PLATFORM then
+                -- Check if character is above the platform
+                local tileTopY = (checkY - 1) * world.tileSize
+                local playerBottom = bottom
+                
+                if playerBottom >= tileTopY and playerBottom <= tileTopY + world.tileSize/2 then
+                    return {
+                        isPlatform = true,
+                        resolveY = tileTopY - height
+                    }
+                end
+            end
+        end
     end
-
+    
     return false
 end
 -- Get tile at wordl position
@@ -162,12 +180,9 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
     -- Door color
     local doorColor = {0.8, 0.4, 0.1, 1}
     -- Vertical tunnel color
-    local verticalTunnelColor = {0.3, 0.3, 0.3, 1}
+    local TunnelColor = {0.5,0.5,0.5,1}
     local blockageColor = {1, 0.1, 0.1, 1}
     local platformColor = {0.3, 0.7, 0.3, 1}
-    
-    -- Hitbox color for doors
-    local doorHitboxColor = {1, 0, 0, 1} -- Red color
     
     -- Calculate visible area
     local startY = math.floor(cameraY / world.tileSize)
@@ -203,15 +218,6 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
                     world.tileSize, 
                     world.tileSize
                 )
-                -- Draw hitbox for doors
-                love.graphics.setColor(doorHitboxColor)
-                love.graphics.rectangle(
-                    "line", 
-                    (x-1) * world.tileSize, 
-                    (y-1) * world.tileSize - cameraY, 
-                    world.tileSize, 
-                    world.tileSize
-                )
             elseif tileType == world.BLOCKAGE then
                 love.graphics.setColor(blockageColor)
                 love.graphics.rectangle(
@@ -222,7 +228,7 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
                     world.tileSize
                 )
             elseif tileType == world.PLATFORM then
-                love.graphics.setColor(blockageColor)
+                love.graphics.setColor(wallColor)
                 love.graphics.rectangle(
                     "fill", 
                     (x-1) * world.tileSize, 

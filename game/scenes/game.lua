@@ -84,8 +84,11 @@ function Game:keypressed(key)
         self.player.velocityY = 0
     end
     if key == "space" and not self.player.isJumping and not self.player.isDead then
-        self.player.velocityY = -300
+        self.player.velocityY = -850
         self.player.isJumping = true
+        if self.onGround then
+            self.onGround = false
+        end
     end
     if key == "i" then
         self.player.oxygen:toggleRefill()
