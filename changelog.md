@@ -37,3 +37,8 @@
 4/6/2025 19:12 pm CET
 - Added Player and world collition
 - Added camera following player
+
+# Day 3
+4/7/2025 16:56 CET
+- Added doors to intersections
+- Added platforms

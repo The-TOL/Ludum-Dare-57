@@ -23,6 +23,7 @@ function worldGenerator.generateWorld(tileSize)
         TUNNEL = mapGenerator.TUNNEL,
         BLOCKAGE = mapGenerator.BLOCKAGE,
         DOORS = mapGenerator.DOORS,
+        PLATFORM = mapGenerator.PLATFORM,
         VERTICAL_TUNNEL = mapGenerator.VERTICAL_TUNNEL,
         playerStartX = playerStartWorldX,
         playerStartY = playerStartWorldY
@@ -125,6 +126,15 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
                     world.tileSize
                 )
             elseif tileType == world.BLOCKAGE then
+                love.graphics.setColor(blockageColor)
+                love.graphics.rectangle(
+                    "fill", 
+                    (x-1) * world.tileSize, 
+                    (y-1) * world.tileSize - cameraY, 
+                    world.tileSize, 
+                    world.tileSize
+                )
+            elseif tileType == world.PLATFORM then
                 love.graphics.setColor(blockageColor)
                 love.graphics.rectangle(
                     "fill", 
