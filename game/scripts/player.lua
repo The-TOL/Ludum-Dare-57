@@ -16,7 +16,7 @@ function Player:new(x, y)
         clickSound = love.audio.newSource("assets/audio/footstep.mp3", "static"),
         x = x,
         y = y,
-        speed = 5000,
+        speed = 350,
         size = 130,
         velocityY = 0,
         gravity = 1500,
