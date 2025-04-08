@@ -51,6 +51,10 @@
 4/7/2025 16:40 PM CET
 - Added functionality to enter the shack to refill oxygen, instead of just refilling when near the shack
 
+4/7/2025 16:56 CET
+- Added doors to intersections
+- Added platforms
+
 4/7/2025 18:58 PM CET
 - Added lighting! Way more atmosphere now
 - Fixed shack rendering
@@ -78,11 +82,19 @@
 - Added sprite sprite and removed animations
 - Altered gravity and jump velocity
 
+
+
 # Day 4
-4/8/2025 00:18 AM CET
+4/8/2025 01:49 CET
+- Fixed. Doors.
+- 
+- 4/8/2025 00:18 AM CET
 - Changed oxygen
 - Removed debug buttons
 
 4/8/2025 00:23 AM CET
 - Oops, missed a debug feature
+
+4/8/2025 02:35 CET
+AGAIN!
 

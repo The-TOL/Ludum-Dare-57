@@ -150,6 +150,7 @@ function Game:update(dt)
         for i, entity in ipairs(self.stalkers) do
             entity:update(dt, self.player)
         end
+        worldGenerator.update(self.world, dt)
     end
 end
 
@@ -164,7 +165,11 @@ end
 function Game:keypressed(key)
     if key == "space" and not self.player.isJumping and not self.player.isDead then
         self.player.velocityY = -400
+
         self.player.isJumping = true
+        if self.onGround then
+            self.onGround = false
+        end
     end
     if key == "return" then
         if self.player.nearShack and not self.player.isInShack then
@@ -352,6 +357,49 @@ function Game:destroy()
     end
     
     collectgarbage("collect")
+=======
+    local cameraX, cameraY = self.camera:getPosition()
+    -- Background parralax logic
+    love.graphics.setColor(1, 1, 1, 1)
+    for _, bg in ipairs(self.backgrounds) do
+        local scaleX = self.windowWidth / bg.sprite:getWidth()
+        local scaleY = self.windowHeight / bg.sprite:getHeight()
+        local yOffset = (self.player.y * bg.scrollSpeed) % self.windowHeight
+
+        local parallaxX = cameraX * bg.scrollSpeed
+        
+        -- First background
+        love.graphics.draw(bg.sprite, -parallaxX % self.windowWidth, -yOffset, 0, scaleX, scaleY)
+        -- Second background (for seamless scrolling)
+        love.graphics.draw(bg.sprite, (-parallaxX % self.windowWidth) - self.windowWidth, -yOffset, 0, scaleX, scaleY)
+        -- Third background (for seamless scrolling in the other direction)
+        love.graphics.draw(bg.sprite, (-parallaxX % self.windowWidth) + self.windowWidth, -yOffset, 0, scaleX, scaleY)
+    end
+    
+    self.camera:applyTransform()
+    
+    -- Draw the walls
+    worldGenerator.drawMap(self.world, cameraY, cameraX)
+    
+    -- Draw player and canary
+    self.player:draw(cameraY)
+    self.canary:draw(self.player, cameraY)
+    
+    self.camera:removeTransform()
+    
+    -- Draw oxygen meters
+    love.graphics.setColor(1, 1, 1, 1)
+    -- Player oxygen meter
+    love.graphics.rectangle("line", 10, 10, 200, 20)
+    love.graphics.rectangle("fill", 10, 10, 200 * self.player.oxygen:getPercentage(), 20)
+    -- Canary oxygen meter
+    love.graphics.rectangle("line", 10, 40, 100, 10)
+    love.graphics.rectangle("fill", 10, 40, 100 * self.canary.oxygen:getPercentage(), 10)
+    
+    -- Draw death screen
+    if self.player.isDead then
+        self.deathScreen:draw()
+    end
 end
 
 return Game
