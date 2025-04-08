@@ -16,10 +16,10 @@ function Player:new(x, y)
         clickSound = love.audio.newSource("assets/audio/footstep.mp3", "static"),
         x = x,
         y = y,
-        speed = 350,
+        speed = 5000,
         size = 130,
         velocityY = 0,
-        gravity = 500,
+        gravity = 1500,
         isJumping = false,
         isDead = false,
         facingLeft = false,
@@ -57,19 +57,17 @@ function Player:checkCollision(world)
 end
 
 function Player:update(dt, world, windowWidth)
-        -- Kill player if oxygen depleted
     if not self.isDead then
+        
         self.oxygen:update(dt)
         if self.oxygen.isDepleted then
             self.isDead = true
         end
 
-        -- Store previous positions
         local prevX, prevY = self.x, self.y
-
         self.isMoving = false
 
-        -- Left/Right movement with facing direction
+        -- Handle horizontal movement first
         if love.keyboard.isDown("a") then
             self.x = self.x - self.speed * dt
             self.facingLeft = true
@@ -89,20 +87,41 @@ function Player:update(dt, world, windowWidth)
         end
     end
 
-        -- Check horzontal collision
-        if self:checkCollision(world) then
-            self.x = prevX
+        -- Check horizontal collision
+        local hCollision = self:checkCollision(world)
+        if hCollision then
+            if hCollision.isWall or hCollision.isPlatform then
+                self.x = prevX -- Revert X if collision with wall or platform edge
+            elseif hCollision.isDoor then
+                worldGenerator.teleportThroughDoor(world, self, hCollision)
+            end
         end
 
-        -- Vertical gravity
+        -- Apply gravity to velocity
         self.velocityY = self.velocityY + self.gravity * dt
+        
+        -- Store previous Y position
+        local prevY = self.y
+        
+        -- Apply vertical movement
         self.y = self.y + self.velocityY * dt
-
-        -- Check vertical collision
-        if self:checkCollision(world) then
-            self.y = prevY -- Revert Y if collision
-            self.velocityY = 0
-            self.isJumping = false
+        
+        -- Check vertical collision after moving
+        local vCollision = self:checkCollision(world)
+        if vCollision then
+            if vCollision.isPlatform and self.velocityY > 0 then
+                -- Landing on platform from above
+                self.y = vCollision.resolveY or prevY
+                self.velocityY = 0
+                self.isJumping = false
+            elseif vCollision.isWall then
+                -- Hitting wall from any direction
+                self.y = prevY
+                self.velocityY = 0
+                self.isJumping = false
+            elseif vCollision.isDoor then
+                worldGenerator.teleportThroughDoor(world, self, vCollision)
+            end
         end
 
         -- Update animation
@@ -113,7 +132,7 @@ function Player:update(dt, world, windowWidth)
                 self.currentFrame = self.currentFrame % self.numFrames + 1
             end
         else
-            self.currentFrame = 3
+            self.currentFrame = 3 -- Idle frame
         end
     end
 end
