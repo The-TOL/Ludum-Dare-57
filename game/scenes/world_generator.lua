@@ -56,17 +56,56 @@ function worldGenerator.generateWorld(tileSize)
     -- Stay away from player start position
     local safeRadius = 500
     local minSpawnerDistance = 300  -- Minimum distance between spawners
+    local maxSpawnersPerLevel = 2   -- Maximum spawners per level
+    local placedSpawners = {}       -- Track positions of placed spawners
+    local spawnersPerLevel = {}     -- Track count of spawners on each level
+    
+    -- Initialize spawners per level counter
+    for i=1, #levels do
+        spawnersPerLevel[i] = 0
+    end
+    
+    -- Total number of spawners to place
+    local totalSpawners = 12
     local spawnerCount = 0
     local attempts = 0
-    local maxAttempts = 600
-    local placedSpawners = {}  -- Track positions of placed spawners
+    local maxAttempts = 800
     
-    -- Spawn 12 spawners randomly with proper spacing
-    while spawnerCount < 12 and attempts < maxAttempts do
+    -- Alternate through levels to ensure even distribution
+    while spawnerCount < totalSpawners and attempts < maxAttempts do
         attempts = attempts + 1
         
+        -- Select a level based on current spawner distribution
+        local targetLevel = 1
+        if #levels > 1 then
+            -- Skip the player starting level (level 1) more often
+            if spawnerCount > 0 and math.random() > 0.2 then
+                -- Find level with least spawners
+                local minSpawners = math.huge
+                for i=2, #levels do
+                    if spawnersPerLevel[i] < minSpawners then
+                        minSpawners = spawnersPerLevel[i]
+                        targetLevel = i
+                    end
+                end
+                
+                -- If the level with minimum spawners already has the max allowed,
+                -- try a random level (except first level)
+                if spawnersPerLevel[targetLevel] >= maxSpawnersPerLevel then
+                    targetLevel = math.random(2, #levels)
+                end
+            end
+        end
+        
+        -- Get y-range for this level
+        local levelY = levels[targetLevel]
+        local levelYRange = 30  -- Search range around the level
+        local minY = math.max(1, levelY - levelYRange)
+        local maxY = math.min(world.mapHeight, levelY + levelYRange)
+        
+        -- Try to place a spawner in this level
         local randX = math.random(1, world.mapWidth)
-        local randY = math.random(1, world.mapHeight)
+        local randY = math.random(minY, maxY)
         
         if world.mapData[randY][randX] == world.TUNNEL then
             local tileX = (randX - 1) * world.tileSize + (world.tileSize / 2)
@@ -88,12 +127,14 @@ function worldGenerator.generateWorld(tileSize)
                 -- Place the spawner if not too close to others
                 if not tooClose then
                     world.mapData[randY][randX] = world.SPAWNER
-                    table.insert(placedSpawners, {x = tileX, y = tileY})
+                    table.insert(placedSpawners, {x = tileX, y = tileY, level = targetLevel})
                     spawnerCount = spawnerCount + 1
+                    spawnersPerLevel[targetLevel] = spawnersPerLevel[targetLevel] + 1
                 end
             end
         end
     end
+    
     worldGenerator.establishDoorConnections(world)
     
     return world
