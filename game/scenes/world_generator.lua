@@ -1,7 +1,8 @@
---TODO player changing color when touching some tiles?, also add vertical tiles in front of player
 local mapGenerator = require("scripts.map_generator")
 
-local worldGenerator = {}
+local worldGenerator = {
+    shackSprite = love.graphics.newImage("assets/visual/shack.png")
+}
 
 function worldGenerator.generateWorld(tileSize)
     tileSize = tileSize or 32
@@ -40,6 +41,8 @@ function worldGenerator.generateWorld(tileSize)
         WALL = mapGenerator.WALL,
         TUNNEL = mapGenerator.TUNNEL,
         BLOCKAGE = mapGenerator.BLOCKAGE,
+        SHACK = mapGenerator.SHACK,
+        SPAWNER = mapGenerator.SPAWNER, -- Add the spawner constant to the world
         DOORS = mapGenerator.DOORS,
         PLATFORM = mapGenerator.PLATFORM,
         VERTICAL_TUNNEL = mapGenerator.VERTICAL_TUNNEL,
@@ -50,6 +53,47 @@ function worldGenerator.generateWorld(tileSize)
         currentLevel = 1
     }
     
+    -- Stay away from player start position
+    local safeRadius = 500
+    local minSpawnerDistance = 300  -- Minimum distance between spawners
+    local spawnerCount = 0
+    local attempts = 0
+    local maxAttempts = 600
+    local placedSpawners = {}  -- Track positions of placed spawners
+    
+    -- Spawn 12 spawners randomly with proper spacing
+    while spawnerCount < 12 and attempts < maxAttempts do
+        attempts = attempts + 1
+        
+        local randX = math.random(1, world.mapWidth)
+        local randY = math.random(1, world.mapHeight)
+        
+        if world.mapData[randY][randX] == world.TUNNEL then
+            local tileX = (randX - 1) * world.tileSize + (world.tileSize / 2)
+            local tileY = (randY - 1) * world.tileSize + (world.tileSize / 2)
+            local distanceToPlayer = math.sqrt((tileX - playerStartWorldX)^2 + (tileY - playerStartWorldY)^2)
+            
+            -- Check distance to player
+            if distanceToPlayer > safeRadius then
+                -- Check distance to other spawners
+                local tooClose = false
+                for _, spawner in ipairs(placedSpawners) do
+                    local spawnerDist = math.sqrt((tileX - spawner.x)^2 + (tileY - spawner.y)^2)
+                    if spawnerDist < minSpawnerDistance then
+                        tooClose = true
+                        break
+                    end
+                end
+                
+                -- Place the spawner if not too close to others
+                if not tooClose then
+                    world.mapData[randY][randX] = world.SPAWNER
+                    table.insert(placedSpawners, {x = tileX, y = tileY})
+                    spawnerCount = spawnerCount + 1
+                end
+            end
+        end
+    end
     worldGenerator.establishDoorConnections(world)
     
     return world
@@ -320,13 +364,20 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
     local startX = math.floor(cameraX / world.tileSize)
     local endX = math.ceil((cameraX + love.graphics.getWidth()) / world.tileSize)
     
-    -- Ensure were within map bounds
+    -- Calculate visible area with some padding
+    local padding = 2 -- Add a small buffer of tiles
+    local startY = math.floor(cameraY / world.tileSize) - padding
+    local endY = math.ceil((cameraY + love.graphics.getHeight()) / world.tileSize) + padding
+    local startX = math.floor(cameraX / world.tileSize) - padding
+    local endX = math.ceil((cameraX + love.graphics.getWidth()) / world.tileSize) + padding
+    
+    -- Ensure we're within map bounds
     startY = math.max(1, startY)
     endY = math.min(world.mapHeight, endY)
     startX = math.max(1, startX)
     endX = math.min(world.mapWidth, endX)
     
-    -- First draw regular tiles
+    -- First draw regular tiles (only visible ones)
     for y = startY, endY do
         for x = startX, endX do
             local tileType = world.mapData[y][x]
@@ -339,6 +390,31 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
                     world.tileSize, 
                     world.tileSize
                 )
+            elseif tileType == world.SHACK then
+                -- Only draw shacks if they're close to being visible
+                local shackX = (x-1) * world.tileSize
+                local shackY = (y-1) * world.tileSize - cameraY - (world.tileSize * 10)
+                
+                -- Check if shack is close to screen before drawing
+                if shackY > -world.tileSize * 12 and 
+                   shackY < love.graphics.getHeight() + world.tileSize * 2 then
+                
+                    -- Scale and center the shack sprite over the tile
+                    local shackScale = world.tileSize * 11
+                    local shackWidth = shackScale
+                    
+                    local centerOffset = (shackWidth / 2) - (world.tileSize / 2)
+                    
+                    love.graphics.setColor(1, 1, 1, 1)
+                    love.graphics.draw(
+                        worldGenerator.shackSprite,
+                        shackX - centerOffset,
+                        shackY, 
+                        0,
+                        shackScale / worldGenerator.shackSprite:getWidth(),
+                        shackScale / worldGenerator.shackSprite:getHeight()
+                    )
+                end
             elseif tileType == world.DOORS then
                 local doorInfo = worldGenerator.getDoorInfo(world, x, y)
                 local doorColor = exitDoorColor
@@ -385,6 +461,18 @@ function worldGenerator.drawMap(world, cameraY, cameraX)
             end
         end
     end
+end
+
+-- Position for spawning entity
+function worldGenerator.getSpawnPositionAboveTile(world, tileX, tileY)
+    local worldX = (tileX - 1) * world.tileSize + (world.tileSize / 2)
+    local worldY = (tileY - 1) * world.tileSize - world.tileSize
+    
+    return worldX, worldY
+end
+
+function worldGenerator.drawDebug(world, cameraY, cameraX)
+    mapGenerator.drawDebug(world.mapData, world.tileSize, cameraY, cameraX)
 end
 
 return worldGenerator

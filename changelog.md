@@ -20,7 +20,7 @@
 - Added a map generator to generate and calculate the map
 
 # Day 2
-4/6/2025 12:30 AM CET
+4/6/2025 00:30 AM CET
 - Added alert sound when canary is low on oxygen
 - Added proper oxygen refilling (test by pressing i to toggle oxygen)
 
@@ -34,18 +34,67 @@
 4/6/2025 14:52 PM CET
 -Added a World generator to display and generate the world from the map
 
-4/6/2025 19:12 pm CET
+4/6/2025 19:12 PM CET
 - Added Player and world collition
 - Added camera following player
 
+4/6/2025 21:55 PM CET
+- Added key j, g and f3 for super speed, generating seeds and viewing debug map
+- Spruced up the main menu
+- Set up the build file with an icon and correct game info
+
+4/6/2025 23:05 PM CET
+- Added shacks as a tile
+- Added oxygen refilling when in shack tile (only registers in a very small radius currently)
+
 # Day 3
+4/7/2025 16:40 PM CET
+- Added functionality to enter the shack to refill oxygen, instead of just refilling when near the shack
+
 4/7/2025 16:56 CET
 - Added doors to intersections
 - Added platforms
 
+4/7/2025 18:58 PM CET
+- Added lighting! Way more atmosphere now
+- Fixed shack rendering
+
+4/7/2025 19:57 PM CET
+- Heavily optimized the game
+
+4/7/2025 21:20 PM CET
+- Added a "spawner" tile which spawns entities
+- Added a stalker entity
+
+4/7/2025 21:49 PM CET
+- Added a spider entity
+
+4/7/2025 23:13 PM CET
+- Fixed spider entity
+- Made new cover art
+- Properly set up LDjam.com and itch.io pages
+
+4/7/2025 23:30 PM CET
+- Added stalker sprite and animations
+- Fixed spawner tile placement
+
+4/7/2025 23:50 PM CET
+- Added sprite sprite and removed animations
+- Altered gravity and jump velocity
+
+
+
 # Day 4
 4/8/2025 01:49 CET
 - Fixed. Doors.
+- 
+- 4/8/2025 00:18 AM CET
+- Changed oxygen
+- Removed debug buttons
+
+4/8/2025 00:23 AM CET
+- Oops, missed a debug feature
 
 4/8/2025 02:35 CET
 AGAIN!
+

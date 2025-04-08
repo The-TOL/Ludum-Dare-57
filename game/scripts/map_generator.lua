@@ -6,6 +6,8 @@ MapGenerator.MAP_H = 1080
 MapGenerator.TUNNEL = 0
 MapGenerator.WALL = 1
 MapGenerator.BLOCKAGE = 2
+MapGenerator.SHACK = 3
+MapGenerator.SPAWNER = 4  -- New tile type for entity spawning
 MapGenerator.VERTICAL_TUNNEL = 5
 MapGenerator.PLATFORM = 6
 MapGenerator.DOORS = 7
@@ -13,6 +15,9 @@ MapGenerator.DOORS = 7
 -- Config settings
 MapGenerator.config = {
     mainMine = { xPosition = 0.4, width = 0.0010 },
+    shacks = {  
+        size = {width = 20, height = 16} -- Increased from 5x4 to 20x16
+    },
     levels = {
         count = {min = 8, max = 10}, 
         heightPercent = {min = 0.05, max = 0.2},
@@ -166,13 +171,22 @@ function MapGenerator.carveVerticalMine(map, x, yStart, yEnd)
 end
 
 -- Carve a horizontal tunnel
-function MapGenerator.carveHorizontalTunnel(map, startX, endX, y, width)
+function MapGenerator.carveHorizontalTunnel(map, startX, endX, y, width, levelIndex)
     for x = startX, endX do
         for w = 0, width - 1 do
             local yPos = y + w
             if yPos <= MapGenerator.MAP_H then
                 map[yPos][x] = MapGenerator.TUNNEL
             end
+        end
+    end
+    
+    -- Add shacks
+    if levelIndex == 1 or levelIndex % 2 == 1 then
+        local groundX = random(startX, endX)
+        local groundY = y + width - 1
+        if groundY <= MapGenerator.MAP_H then
+            map[groundY][groundX] = MapGenerator.SHACK
         end
     end
 end

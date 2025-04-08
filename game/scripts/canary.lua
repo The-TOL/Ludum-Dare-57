@@ -9,7 +9,7 @@ function Canary:new()
         size = 30,
         anchorX = 85,
         anchorY = 94,
-        oxygen = Oxygen:new(80, 10), 
+        oxygen = Oxygen:new(180, 4.5), 
         isDead = false,
         clickSound = love.audio.newSource("assets/audio/chirp.mp3", "static"),
         alertThresholds = {0.2, 0.1},
@@ -28,7 +28,7 @@ end
 
 -- Anchor canary sprite relative to the player
 function Canary:draw(player, cameraY)
-    if not self.isDead then
+    if not self.isDead and not player.isInShack then
         local canaryScaleX = self.size / self.sprite:getWidth()
         local canaryX
         
