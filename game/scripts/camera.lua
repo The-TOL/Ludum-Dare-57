@@ -1,4 +1,3 @@
---TODO camera is slighly angled left );
 local Camera = {}
 
 function Camera:new(windowWidth, windowHeight)

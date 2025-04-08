@@ -235,19 +235,22 @@ function Game:draw()
             love.graphics.setCanvas(self.gameCanvas)
             love.graphics.clear()
             
-            self.camera:applyTransform()
+            local cameraX, cameraY = self.camera:getPosition()
+            -- Background parralax logic
             love.graphics.setColor(1, 1, 1, 1)
-            
-            -- Background parallax logic
             for _, bg in ipairs(self.backgrounds) do
                 local scaleX = self.windowWidth / bg.sprite:getWidth()
                 local scaleY = self.windowHeight / bg.sprite:getHeight()
                 local yOffset = (self.player.y * bg.scrollSpeed) % self.windowHeight
-                local xOffset = (cameraX * bg.scrollSpeed) % self.windowWidth
+        
+                local parallaxX = cameraX * bg.scrollSpeed
                 
-                love.graphics.draw(bg.sprite, cameraX + xOffset, -yOffset, 0, scaleX, scaleY)
-                love.graphics.draw(bg.sprite, cameraX + xOffset + self.windowWidth, -yOffset, 0, scaleX, scaleY)
+                love.graphics.draw(bg.sprite, -parallaxX % self.windowWidth, -yOffset, 0, scaleX, scaleY)
+                love.graphics.draw(bg.sprite, (-parallaxX % self.windowWidth) - self.windowWidth, -yOffset, 0, scaleX, scaleY)
+                love.graphics.draw(bg.sprite, (-parallaxX % self.windowWidth) + self.windowWidth, -yOffset, 0, scaleX, scaleY)
             end
+            
+            self.camera:applyTransform()
             
             worldGenerator.drawMap(self.world, cameraY, cameraX)
             
