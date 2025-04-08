@@ -357,7 +357,6 @@ function Game:destroy()
     end
     
     collectgarbage("collect")
-=======
     local cameraX, cameraY = self.camera:getPosition()
     -- Background parralax logic
     love.graphics.setColor(1, 1, 1, 1)

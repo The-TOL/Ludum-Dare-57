@@ -667,7 +667,7 @@ function MapGenerator.generateMine()
             right = mainX
         }
         
-        MapGenerator.carveHorizontalTunnel(map, leftEnd, mainX, y, tunnelWidth)
+        MapGenerator.carveHorizontalTunnel(map, leftEnd, mainX, y, tunnelWidth, i)
         
         -- Procces right side
 
@@ -684,7 +684,7 @@ function MapGenerator.generateMine()
             right = rightEnd
         }
         
-        MapGenerator.carveHorizontalTunnel(map, mainX, rightEnd, y, tunnelWidth)
+        MapGenerator.carveHorizontalTunnel(map, mainX, rightEnd, y, tunnelWidth, i)
     end
     
     MapGenerator.carveVerticalMine(map, mainX, 1, MapGenerator.MAP_H)
