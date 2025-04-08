@@ -64,6 +64,8 @@ function Game:update(dt)
         self.player:update(dt, self.world, self.windowWidth)
         self.canary:update(dt)
         self.camera:update(dt, self.player, self.world.width, self.world.height)
+        
+        worldGenerator.update(self.world, dt)
     end
 end
 
