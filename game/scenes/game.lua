@@ -73,6 +73,29 @@ function Game:new(windowWidth, windowHeight, onMainMenu)
             obj.canary = Canary:new()
             obj.camera = Camera:new(windowWidth, windowHeight)
             
+            -- Clear entities when retrying
+            obj.stalkers = {}
+            obj.spawnerTimers = {}
+            
+            -- Re-initialize spawners
+            obj.spawners = {}
+            for y = 1, obj.world.mapHeight do
+                for x = 1, obj.world.mapWidth do
+                    if obj.world.mapData[y][x] == obj.world.SPAWNER then
+                        local spawnerX = (x - 1) * obj.world.tileSize + (obj.world.tileSize / 2) 
+                        local spawnerY = (y - 1) * obj.world.tileSize + (obj.world.tileSize / 2)
+                        
+                        table.insert(obj.spawners, {
+                            x = spawnerX,
+                            y = spawnerY,
+                            tileX = x,
+                            tileY = y
+                        })
+                        table.insert(obj.spawnerTimers, math.random(3, 20))
+                    end
+                end
+            end
+            
             collectgarbage("collect")
         end,
         onMainMenu
