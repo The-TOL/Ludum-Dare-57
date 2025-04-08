@@ -237,30 +237,32 @@ function worldGenerator.checkCollision(world, x, y, width, height)
     tileTop = math.max(1, math.min(tileTop, world.mapHeight))
     tileBottom = math.max(1, math.min(tileBottom, world.mapHeight))
 
-    -- Check all tiles in collision area
+    -- Check for door collision first
     for checkY = tileTop, tileBottom do
         for checkX = tileLeft, tileRight do
             local tileType = world.mapData[checkY][checkX]
-            if tileType == world.WALL or tileType == world.BLOCKAGE then
-                return {isWall = true}
-            elseif tileType == world.DOORS then
+            if tileType == world.DOORS then
                 if world.lastUsedDoor and 
                    world.lastUsedDoor.x == checkX and 
                    world.lastUsedDoor.y == checkY and
                    world.lastUsedDoor.cooldown > 0 then
+                    -- Skip this door if on cooldown
                 else
-                    doorCollision = worldGenerator.getDoorCollision(world, x, y, width, height)
+                    local doorCollision = worldGenerator.getDoorCollision(world, x, y, width, height)
+                    if doorCollision then
+                        return {isDoor = true, doorInfo = doorCollision.doorInfo}
+                    end
                 end
             end
         end
     end
-    
-    -- Check for walls and platforms
+
+    -- Check for walls, blockages and platforms
     for checkY = tileTop, tileBottom do
         for checkX = tileLeft, tileRight do
             local tileType = world.mapData[checkY][checkX]
             
-            if tileType == world.WALL then
+            if tileType == world.WALL or tileType == world.BLOCKAGE then
                 return { isWall = true }
             elseif tileType == world.PLATFORM then
                 -- Check if character is above the platform
