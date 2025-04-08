@@ -23,7 +23,7 @@ function Player:new(x, y)
         isJumping = false,
         isDead = false,
         facingLeft = false,
-        oxygen = Oxygen:new(200, 4.5),
+        oxygen = Oxygen:new(200, 3.5),
         collisionBox = {
             offsetX = 35,
             offsetY = 20,
@@ -41,6 +41,7 @@ function Player:new(x, y)
     }
     
     obj.frameWidth = obj.spriteSheet:getWidth() / obj.numFrames
+    obj.clickSound:setVolume(0.3)
     
     setmetatable(obj, self)
     self.__index = self

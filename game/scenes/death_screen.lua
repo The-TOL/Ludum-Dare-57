@@ -31,7 +31,7 @@ function DeathScreen:draw()
     love.graphics.rectangle("fill", 0, 0, self.windowWidth, self.windowHeight)
     
     love.graphics.setColor(1, 0, 0, 1)
-    love.graphics.printf("YOU DIED!!!!!!!!!!!!!!!!!!!!!", 0, self.windowHeight / 2 - 100, self.windowWidth, "center")
+    love.graphics.printf("You are dead", 0, self.windowHeight / 2 - 100, self.windowWidth, "center")
     
     love.graphics.setColor(1, 1, 1, 1)
     self.retryButton:draw()

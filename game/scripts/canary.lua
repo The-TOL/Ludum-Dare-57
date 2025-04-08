@@ -9,7 +9,7 @@ function Canary:new()
         size = 30,
         anchorX = 85,
         anchorY = 94,
-        oxygen = Oxygen:new(180, 4.5), 
+        oxygen = Oxygen:new(180, 3.5), 
         isDead = false,
         clickSound = love.audio.newSource("assets/audio/chirp.mp3", "static"),
         alertThresholds = {0.2, 0.1},
@@ -21,6 +21,9 @@ function Canary:new()
         maxAngle = 1.2,             
         swingForce = 1.4          
     }
+    
+    obj.clickSound:setVolume(0.3)
+    
     setmetatable(obj, self)
     self.__index = self
     return obj

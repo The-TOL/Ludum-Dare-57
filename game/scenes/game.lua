@@ -326,12 +326,6 @@ function Game:draw()
         
         -- Draw oxygen meters
         love.graphics.setColor(1, 1, 1, 1)
-        -- Player oxygen meter
-        love.graphics.rectangle("line", 10, 10, 200, 20)
-        love.graphics.rectangle("fill", 10, 10, 200 * self.player.oxygen:getPercentage(), 20)
-        -- Canary oxygen meter
-        love.graphics.rectangle("line", 10, 40, 100, 10)
-        love.graphics.rectangle("fill", 10, 40, 100 * self.canary.oxygen:getPercentage(), 10)
         
         -- Draw prompts
         local promptInfo = self.player:getPromptInfo(cameraY)
@@ -388,16 +382,7 @@ function Game:destroy()
     self.canary:draw(self.player, cameraY)
     
     self.camera:removeTransform()
-    
-    -- Draw oxygen meters
-    love.graphics.setColor(1, 1, 1, 1)
-    -- Player oxygen meter
-    love.graphics.rectangle("line", 10, 10, 200, 20)
-    love.graphics.rectangle("fill", 10, 10, 200 * self.player.oxygen:getPercentage(), 20)
-    -- Canary oxygen meter
-    love.graphics.rectangle("line", 10, 40, 100, 10)
-    love.graphics.rectangle("fill", 10, 40, 100 * self.canary.oxygen:getPercentage(), 10)
-    
+
     -- Draw death screen
     if self.player.isDead then
         self.deathScreen:draw()
